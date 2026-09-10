@@ -8,9 +8,9 @@
 | 2 | Docs & setup guides | `01-docs/` | `00-pic-family-overview.md`, `01-toolchain-setup.md`, `02-wiring-and-power-basics.md` | ✅ done |
 | 3 | Basics firmware | `02-basics/` | LED blink, GPIO, button + debounce, delay methods (`blink.c`, `button.c`, notes) | ✅ done |
 | 4 | Intermediate modules | `03-intermediate/` | Timer0/1, external interrupt, UART echo, ADC read, PWM LED dimmer | ✅ done |
-| 5 | Advanced topics | `04-advanced/` | I2C scanner + EEPROM, SPI loopback note, watchdog + sleep, config-word guide | ⬜ next |
-| 6 | Python automation & data | `05-python-tools/` | `baud_calc.py`, `serial_logger.py`, `config_helper.py` + `requirements.txt` | ⬜ |
-| 7 | Capstone project | `06-projects/` | `temp-logger` mini-project (PIC ADC + UART + Python logger), checklist + quiz | ⬜ |
+| 5 | Advanced topics | `04-advanced/` | I2C scanner + EEPROM, SPI loopback note, watchdog + sleep, config-word guide | ✅ done |
+| 6 | Python automation & data | `05-python-tools/` | `baud_calc.py`, `serial_logger.py`, `config_helper.py` + `requirements.txt` | ✅ done |
+| 7 | Capstone project | `06-projects/` | `temp-logger` mini-project (PIC ADC + UART + Python logger), checklist + quiz | ✅ done |
 
 ## How a step is executed
 
@@ -24,3 +24,6 @@
 - **2026-09-10 — Step 2 done:** added 3 guides in `01-docs/` (family overview, toolchain setup, wiring & power).
 - **2026-09-10 — Step 3 done:** added 4 firmware examples + notes in `02-basics/` (blink/button x 16F877A/16F18345).
 - **2026-09-10 — Step 4 done:** added 5 modules + notes in `03-intermediate/` (Timer0, EXT-INT, UART, ADC, PWM on 16F877A).
+- **2026-09-10 — Step 5 done:** added 3 demos + SPI note + config guide in `04-advanced/` (I2C scanner, EEPROM, WDT/sleep).
+- **2026-09-10 — Step 6 done:** added 3 Python tools in `05-python-tools/` (baud calc, serial logger, config helper) — all validated.
+- **2026-09-10 — Step 7 done:** added capstone in `06-projects/` (temp-logger firmware + analyzer + checklist + quiz).
