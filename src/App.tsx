@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useTimer } from '@/hooks/useTimer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { TimerDisplay } from '@/components/TimerDisplay';
@@ -18,6 +20,8 @@ import type { TimerStatus } from '@/types';
  * - Responsive design
  * - Accessibility features
  * - Professional UI/UX
+ * - Error handling
+ * - Loading states
  */
 const App: React.FC = () => {
   const LOCKOUT_DURATION = 180; // 3 minutes in seconds
@@ -128,8 +132,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingSpinner label="Loading application" />}>
+        <div className="min-h-screen bg-secondary-50 py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-8 text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-secondary-900 mb-2">
@@ -250,7 +256,8 @@ const App: React.FC = () => {
       >
         {getStatusMessage()}
       </div>
-    </div>
+        </Suspense>
+      </ErrorBoundary>
   );
 };
 

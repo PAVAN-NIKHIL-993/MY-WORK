@@ -8,12 +8,19 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "build:prod": "npm run type-check && npm run lint && npm run build",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:watch": "vitest watch",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",
+    "lint:all": "eslint . --ext ts,tsx,js,jsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\""
+    "type-check:watch": "tsc --noEmit --watch",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "format:all": "prettier --write \"{src,tests,public}/**/*.{ts,tsx,css,json,html}\"",
+    "check": "npm run type-check && npm run lint && npm run test",
+    "check:ci": "npm run type-check && npm run lint:all && npm run test:coverage"
   },
   "dependencies": {
     "react": "^18.2.0",

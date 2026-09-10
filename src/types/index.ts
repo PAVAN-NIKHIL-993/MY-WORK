@@ -69,3 +69,22 @@ export interface TimerDisplayProps {
   status: TimerStatus;
   showMilliseconds?: boolean;
 }
+
+/**
+ * Loading spinner props
+ */
+export interface LoadingSpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  label?: string;
+}
+
+/**
+ * Skeleton props
+ */
+export interface SkeletonProps {
+  className?: string;
+  variant?: 'text' | 'circular' | 'rectangular';
+  width?: string | number;
+  height?: string | number;
+}
