@@ -12,7 +12,7 @@ export const Card: React.FC<CardProps> = ({
   footer,
 }) => {
   return (
-    <div className={`card ${className}`} role="region" aria-label={title || 'Card'}>{
+    <div className={`card ${className}`} role="region" aria-label={title || 'Card'}>
       {(title || subtitle) && (
         <div className="p-6 pb-0">
           {title && (

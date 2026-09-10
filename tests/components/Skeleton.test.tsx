@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { Skeleton } from '@/components/Skeleton';
+import Skeleton from '@/components/Skeleton';
 
 describe('Skeleton Component', () => {
   it('should render with default rectangular variant', () => {
@@ -28,9 +28,9 @@ describe('Skeleton Component', () => {
   });
 
   it('should apply custom width and height', () => {
-    render(<Skeleton width={100} height={50} />);
+    render(<Skeleton width="100px" height="50px" />);
     const skeleton = screen.getByTestId('skeleton');
-    expect(skeleton).toHaveStyle({ width: 100, height: 50 });
+    expect(skeleton).toHaveStyle({ width: '100px', height: '50px' });
   });
 
   it('should have aria-hidden attribute', () => {

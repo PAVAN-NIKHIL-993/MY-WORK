@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { Button } from '@/components/Button';
+import Button from '@/components/Button';
 
 describe('Button Component', () => {
   it('should render with children', () => {
@@ -69,8 +69,11 @@ describe('Button Component', () => {
 
   it('should show loading spinner when isLoading is true', () => {
     render(<Button isLoading>Loading</Button>);
-    const spinner = screen.getByRole('status');
+    // The spinner is an SVG inside the button
+    const button = screen.getByRole('button');
+    const spinner = button.querySelector('svg');
     expect(spinner).toBeInTheDocument();
+    expect(spinner).toHaveClass('animate-spin');
   });
 
   it('should apply custom className', () => {

@@ -8,7 +8,7 @@ import { TimerDisplay } from '@/components/TimerDisplay';
 import { ProgressRing } from '@/components/ProgressRing';
 import { StatusIndicator } from '@/components/StatusIndicator';
 import { Instructions } from '@/components/Instructions';
-import type { TimerStatus } from '@/types';
+
 
 /**
  * Main Timer Lockout Application Component
@@ -197,7 +197,7 @@ const App: React.FC = () => {
 
         {/* Instructions Section */}
         {showInstructions && (
-          <Instructions id="instructions-section" />
+          <Instructions />
         )}
 
         {/* Technical Details Card */}
@@ -256,8 +256,9 @@ const App: React.FC = () => {
       >
         {getStatusMessage()}
       </div>
-        </Suspense>
-      </ErrorBoundary>
+      </div>
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 

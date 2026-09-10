@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { TimerState, TimerStatus, TimerEvent } from '@/types';
+import type { TimerState, TimerEvent } from '@/types';
 
 /**
  * Default lockout duration: 3 minutes (180 seconds)
@@ -180,9 +180,10 @@ export function useTimer(lockoutDuration: number = DEFAULT_LOCKOUT_DURATION) {
    * Cleanup on unmount
    */
   useEffect(() => {
+    const listeners = eventListeners.current;
     return () => {
       clearTimer();
-      eventListeners.current.clear();
+      listeners.clear();
     };
   }, [clearTimer]);
 

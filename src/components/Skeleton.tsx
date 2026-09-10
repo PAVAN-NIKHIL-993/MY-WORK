@@ -7,10 +7,15 @@ interface SkeletonProps {
   height?: string | number;
 }
 
+interface SkeletonComponent extends React.FC<SkeletonProps> {
+  Card: React.FC<{ className?: string }>;
+  Button: React.FC<{ className?: string }>;
+}
+
 /**
  * Skeleton loading component for content placeholders
  */
-export const Skeleton: React.FC<SkeletonProps> = ({
+const Skeleton: SkeletonComponent = ({
   className = '',
   variant = 'rectangular',
   width,

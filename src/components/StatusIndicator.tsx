@@ -71,7 +71,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
 
   const { label, color, icon, description } = getStatusInfo();
 
-  const colorClasses = {
+  const colorClasses: Record<string, string> = {
     primary: 'bg-primary-100 text-primary-800 border-primary-200',
     secondary: 'bg-secondary-100 text-secondary-800 border-secondary-200',
     red: 'bg-red-100 text-red-800 border-red-200',

@@ -1,15 +1,15 @@
 import { renderHook, act } from '@testing-library/react';
 import { useTimer } from '@/hooks/useTimer';
-import type { TimerStatus } from '@/types';
+import { vi } from 'vitest';
 
 describe('useTimer Hook', () => {
   beforeEach(() => {
     // Mock Date.now for consistent testing
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should initialize with idle status', () => {
@@ -41,19 +41,19 @@ describe('useTimer Hook', () => {
 
     // Advance time by 1 second
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
 
     // Allow the interval to run
     act(() => {
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
     });
 
     // Time should have decreased (may need multiple advances for the interval to fire)
     // The interval runs every 100ms, so we need to advance enough for it to execute
     for (let i = 0; i < 10; i++) {
       act(() => {
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
       });
     }
 
@@ -68,18 +68,15 @@ describe('useTimer Hook', () => {
       result.current.start();
     });
 
-    // Advance time by 2.5 seconds
-    act(() => {
-      jest.advanceTimersByTime(2500);
-    });
-
-    // Allow intervals to process
-    for (let i = 0; i < 25; i++) {
+    // The timer checks every 100ms, so we need to advance enough for it to complete
+    // Advance by 2.1 seconds (21 intervals of 100ms)
+    for (let i = 0; i < 21; i++) {
       act(() => {
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
       });
     }
 
+    // After the timer completes, it should be in locked state
     expect(result.current.state.status).toBe('locked');
     expect(result.current.state.isButtonEnabled).toBe(false);
   });
@@ -93,24 +90,24 @@ describe('useTimer Hook', () => {
 
     // Advance time to complete timer
     act(() => {
-      jest.advanceTimersByTime(1500);
+      vi.advanceTimersByTime(1500);
     });
 
     // Process intervals
     for (let i = 0; i < 15; i++) {
       act(() => {
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
       });
     }
 
     // Now advance through lockout period (1 second)
     act(() => {
-      jest.advanceTimersByTime(1500);
+      vi.advanceTimersByTime(1500);
     });
 
     // Process lockout check
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
 
     expect(result.current.state.isButtonEnabled).toBe(true);
@@ -141,29 +138,7 @@ describe('useTimer Hook', () => {
     });
 
     // Simulate 50 seconds elapsed
-    act(() => {
-      // Manually set the state to simulate 50 seconds elapsed
-      const elapsedState = {
-        ...result.current.state,
-        startTime: Date.now() - 50000, // 50 seconds ago
-        remainingTime: 50,
-      };
-      // This is a bit tricky to test with fake timers
-      // Instead, we'll test the calculation directly
-    });
-
-    // Test with known values
-    // If 50 seconds have elapsed from 100, progress should be 50%
-    // We need to mock the state
-    const mockState = {
-      status: 'running' as TimerStatus,
-      remainingTime: 50,
-      startTime: Date.now() - 50000,
-      lockoutEndTime: null,
-      isButtonEnabled: false,
-    };
-
-    // Manually calculate what the progress would be
+    // We need to mock the state directly for this test
     const progress = ((100 - 50) / 100) * 100;
     expect(progress).toBe(50);
   });

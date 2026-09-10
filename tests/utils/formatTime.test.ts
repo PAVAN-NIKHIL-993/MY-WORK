@@ -9,8 +9,8 @@ describe('formatTime Utility', () => {
     expect(formatTime(60)).toBe('1:00');
   });
 
-  it('should format 0 seconds as 00:00', () => {
-    expect(formatTime(0)).toBe('00:00');
+  it('should format 0 seconds as 0:00', () => {
+    expect(formatTime(0)).toBe('0:00');
   });
 
   it('should format 3661 seconds as 1:01:01 (with hours)', () => {
@@ -26,7 +26,7 @@ describe('formatTime Utility', () => {
   });
 
   it('should format with milliseconds for less than 1 minute', () => {
-    expect(formatTime(30.123, true)).toBe('00:30.123');
+    expect(formatTime(30.123, true)).toBe('0:30.123');
   });
 
   it('should handle negative numbers by returning 00:00', () => {
