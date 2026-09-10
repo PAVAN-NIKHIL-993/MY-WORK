@@ -1,0 +1,4 @@
+# Python tools requirements (Step 6)
+# baud_calc.py + config_helper.py: standard library only, no install needed.
+# serial_logger.py: needs pyserial:
+pyserial>=3.5
