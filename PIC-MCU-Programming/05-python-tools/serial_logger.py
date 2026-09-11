@@ -12,8 +12,9 @@ Each received line is printed live and appended to CSV as:
     pc_time_iso, elapsed_s, raw_line
 Ctrl+C stops cleanly (file is flushed on every line).
 
-Exit codes: 0 ok (incl. Ctrl+C) · 1 pyserial missing · 2 usage/bad input
-· 3 serial device failure (cannot open / disconnected mid-run).
+Exit codes: 0 ok (incl. Ctrl+C) · 1 environment (pyserial missing,
+output write failed) · 2 usage/bad input · 3 serial device failure
+(cannot open / disconnected mid-run).
 """
 
 import argparse
@@ -41,9 +42,13 @@ def list_ports_and_exit() -> None:
 
 
 def open_port(port: str, baud: int) -> "serial.Serial":
-    """Open the port or exit(3) with a friendly error (never a traceback)."""
+    """Open the port or exit(3) with a friendly error (never a traceback).
+
+    Accepts plain ports (COM3, /dev/ttyUSB0) and pyserial URLs
+    (loop://, socket://...) — the latter enable hardware-free testing.
+    """
     try:
-        return serial.Serial(port, baud, timeout=1)
+        return serial.serial_for_url(port, baud, timeout=1)
     except serial.SerialException as e:
         print(f"ERROR: cannot open port '{port}': {e}", file=sys.stderr)
         print("Hint: run with --list to see available ports.", file=sys.stderr)
@@ -84,8 +89,13 @@ def main() -> None:
             sys.exit(2)
         with outfile as f:
             wr = csv.writer(f)
-            wr.writerow(["pc_time_iso", "elapsed_s", "raw_line"])
-            f.flush()
+            try:
+                wr.writerow(["pc_time_iso", "elapsed_s", "raw_line"])
+                f.flush()
+            except OSError as e:
+                print(f"ERROR: write to '{args.out}' failed: {e}",
+                      file=sys.stderr)
+                sys.exit(1)
             while True:
                 if args.seconds and (time.monotonic() - start) >= args.seconds:
                     break
@@ -101,8 +111,14 @@ def main() -> None:
                 line = raw.decode("utf-8", errors="replace").strip()
                 elapsed = time.monotonic() - start
                 now = datetime.now(timezone.utc).isoformat()
-                wr.writerow([now, f"{elapsed:.3f}", line])
-                f.flush()
+                try:
+                    wr.writerow([now, f"{elapsed:.3f}", line])
+                    f.flush()
+                except OSError as e:
+                    print(f"ERROR: write to '{args.out}' failed: {e}",
+                          file=sys.stderr)
+                    exit_code = 1
+                    break
                 n += 1
                 print(f"[{elapsed:8.3f}s] {line}")
     except KeyboardInterrupt:
