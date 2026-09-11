@@ -21,7 +21,7 @@ no `malloc`, no recursion anywhere.
 
 ## 2. PC tools (observed in sandbox, Python 3.11/Linux)
 
-- Full test suite: **26 tests in 0.23 s** (sandbox observation; hardware-free).
+- Full test suite: **28 tests in ~4 s (dominated by the 3 s live socket capture)** (sandbox observation; hardware-free).
 - Logger throughput: trivially I/O-bound (serial ≤ 115200 baud ≈ 11 KB/s);
   per-line `flush()` costs nothing at these rates and guarantees Ctrl+C safety.
 - `analyze_log` holds all samples in RAM: 100k samples ≈ a few MB — fine;

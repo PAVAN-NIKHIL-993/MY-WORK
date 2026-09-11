@@ -23,6 +23,7 @@
 | `serial.Serial()` open | missing/busy/denied port | `ERROR: cannot open… Hint: --list`, exit 3 |
 | `readline()` mid-run | unplug/driver drop | `ERROR: lost device…`, partial CSV kept, exit 3 |
 | CSV open/write | bad path/permissions | `ERROR: cannot write…`, exit 2 |
+| CSV mid-run write | disk full / perms | `ERROR: write to…failed`, exit 1, partial CSV kept |
 | `parse_rows` | garbage lines | skip (header/banner/corruption indistinguishable — and all safe to skip) |
 | `analyze_log` file | missing/unreadable | `ERROR: …`, exit 2 |
 | `analyze_log` data | zero valid samples | message to stderr, exit 1 |

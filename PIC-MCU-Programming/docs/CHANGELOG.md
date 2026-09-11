@@ -13,6 +13,7 @@
   modules/, components/, api/, database/, testing/, guides/).
 - Exit-code contract (0/1/2/3) on all four Python tools.
 - `*.log` to `.gitignore`.
+- Live `socket://` capture test + `/dev/full` write-failure test (logger now accepts pyserial URLs).
 
 ### Changed
 - `serial_logger.py`: friendly `ERROR:` + hints on bad port (exit 3),
@@ -26,6 +27,7 @@
 - `baud_calc --baud 0` crashed with `ZeroDivisionError` → usage error.
 - `analyze_log` on missing file printed a traceback → `ERROR:` + exit 2.
 - `serial_logger` on bad port printed a traceback → `ERROR:` + hint + exit 3.
+- `serial_logger` mid-run output write failure (e.g. disk full) printed a traceback → `ERROR:` + exit 1.
 
 ### Removed
 - Nothing (no dead code found; firmware untouched by design).

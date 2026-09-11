@@ -7,11 +7,11 @@
 
 ```bash
 cd PIC-MCU-Programming
-python -m unittest discover -s tests     # 26 tests (stdlib only)
+python -m unittest discover -s tests     # 28 tests (stdlib only)
 python scripts/check_docs.py             # docs integrity gate
 ```
 
-Last verified: **26 tests, OK (5 skipped: pyserial absent)** — suite exit 0.
+Last verified: **28 tests, OK (skipped=1 with pyserial 3.5 — the dep-guard test itself; skipped=7 without it)** — suite exit 0.
 
 ## 2. Test matrix
 
@@ -23,7 +23,7 @@ Last verified: **26 tests, OK (5 skipped: pyserial absent)** — suite exit 0.
 | `analyze_log` parsing | unit | ✅ | wrapped + plain CSV, garbage skipped, chart smoke |
 | `analyze_log` CLI | black-box | ✅ | stats exact, missing file→2 (was traceback), empty→1 |
 | `serial_logger` guard | black-box | ✅ | no-pyserial→exit 1 + hint |
-| `serial_logger` live | black-box | ⏭️ skip here | `--list`, missing `--port`→2, bad port→3 (need pyserial) |
+| `serial_logger` live | black-box | ✅ pyserial / ⏭️ skip | `--list`, port/arg validation, bad port→3, live socket capture, /dev/full write-fail |
 | Docs links/sources | script | ✅ | `check_docs.py`: 0 broken links; unreferenced-source WARNs |
 | Firmware compile | — | ❌ gap | No XC8 here (see §4) |
 | Firmware on hardware | manual | ❌ gap | Claimed by no one; procedures in stage READMEs |
@@ -33,7 +33,7 @@ Last verified: **26 tests, OK (5 skipped: pyserial absent)** — suite exit 0.
 | Code | Meaning | Produced by |
 |---|---|---|
 | 0 | Success (incl. Ctrl+C stop, `--list`) | all tools |
-| 1 | Environment / no-data (pyserial missing; zero samples) | logger, analyzer |
+| 1 | Environment / no-data (pyserial missing · output write failed · zero samples) | logger, analyzer |
 | 2 | Usage / bad input (argparse, bad values, unreadable file) | all tools |
 | 3 | Serial device failure (open failed, mid-run disconnect) | logger |
 

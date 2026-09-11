@@ -8,7 +8,7 @@ No compiler, no services, no env vars.
 ```bash
 cd PIC-MCU-Programming
 pip install -r 05-python-tools/requirements.txt   # logger only (pyserial)
-python -m unittest discover -s tests              # expect: OK (26 tests)
+python -m unittest discover -s tests              # expect: OK (28 tests)
 python scripts/check_docs.py                      # expect: PASS
 python 05-python-tools/baud_calc.py --fosc 20000000 --baud 9600
 ```
@@ -25,7 +25,7 @@ Summary: install MPLAB X IDE → install XC8 → connect PICkit (or use Simulato
 
 ## 3. Verify your setup (checklist)
 
-- [ ] `python -m unittest discover -s tests` → OK (skips ≤5 without pyserial).
+- [ ] `python -m unittest discover -s tests` → OK (skips ≤7 without pyserial).
 - [ ] `python scripts/check_docs.py` → PASS.
 - [ ] `blink_16f877a.c` builds (`BUILD SUCCESSFUL`) and the LED blinks.
 - [ ] `uart_echo_16f877a.c` shows its banner in a terminal at 9600 8-N-1.

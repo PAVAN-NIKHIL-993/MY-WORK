@@ -122,3 +122,12 @@ in `uart_getc`, ACKSTAT checks in I2C, WR-wait in EEPROM). No changes needed.
 Architecture, modules, data flow, config, deps, integration points, error
 handling, failure points, and debt are understood from the real code and
 recorded above. No implementation started. Ready for STEP 4 (design).
+
+## Amendment (2026-09-11, post-refinement)
+
+Refinement changed PC-side line counts (hardening + docstrings): the four
+tools are now 64 + 95 + 133 + 89 lines (was 58 + 92 + 87 + 79 at audit time);
+`tests/` (+8 files) and `scripts/check_docs.py` were added, and the suite grew
+26 → 28 with live `socket://` capture tests after pyserial 3.5 installed.
+Issues E1–E4 are FIXED (see CHANGELOG); E5/E6 closed as documented. Firmware
+figures above are unchanged (frozen per D5).

@@ -1,6 +1,6 @@
 # Component: baud_calc.py
 
-- **File:** [`05-python-tools/baud_calc.py`](../../05-python-tools/baud_calc.py) (60 lines) · **Module:** [python-tools](../modules/python-tools.md)
+- **File:** [`05-python-tools/baud_calc.py`](../../05-python-tools/baud_calc.py) (64 lines) · **Module:** [python-tools](../modules/python-tools.md)
 - **Purpose:** pre-flash baud validation: SPBRG + actual baud + error% for any Fosc/baud/BRGH; flags error ≥ 2%.
 - **Interface:** CLI `--fosc` (req, >0) `--baud` (def 9600, >0) `--brgh` (0/1, def 1) `--all`; exit 0/2. Stdout report + comparison with the other BRGH.
 - **Functions:** `spbrg_for(fosc,baud,brgh)→(spbrg,actual,err)` — `round(F/(div·baud))−1`, clamped 0–255. `show(…)` — prints `[OK ]/[WARN]` + hint. `main()` — argparse + positive-int validation.

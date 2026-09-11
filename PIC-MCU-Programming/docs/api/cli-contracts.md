@@ -15,11 +15,11 @@
 
 ## `serial_logger.py` — UART capture
 
-- **Args:** `--port` (req unless `--list`) · `--baud` (def 9600, > 0) ·
+- **Args:** `--port` (req unless `--list`; plain ports and pyserial URLs like `loop://`, `socket://…`) · `--baud` (def 9600, > 0) ·
   `--out` (def `pic_log.csv`) · `--seconds` (def 0 = forever, ≥ 0) · `--list`.
 - **Output:** stdout live `[elapsed] line` + final `Saved N lines…`; file:
   header + `pc_time_iso,elapsed_s,raw_line` rows ([schema](../database/schema.md)).
-- **Errors:** no pyserial → 1; usage → 2; open/disconnect → 3 (hint included).
+- **Errors:** no pyserial → 1; usage → 2; open/disconnect → 3 (hint included); mid-run write failure → 1.
 - **Example:** `--port /dev/ttyUSB0 --baud 9600 --out t.csv --seconds 60`.
 
 ## `config_helper.py` — pragma printer

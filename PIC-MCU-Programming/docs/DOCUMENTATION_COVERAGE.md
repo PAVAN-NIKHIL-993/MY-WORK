@@ -2,7 +2,7 @@
 
 > Audit date: 2026-09-11 · Method: every row verified against the repo
 > (`check_docs.py --strict` green + file-by-file review). Machine check:
-> 71 Markdown files, 90+ link targets, 0 broken links, 0 unreferenced sources.
+> 72 Markdown files, 90+ link targets, 0 broken links, 0 unreferenced sources.
 
 ## 1. Coverage matrix
 
@@ -40,6 +40,7 @@
 | Decisions | D1–D9 | architecture/decisions | ✅ |
 | Change history | refinement | CHANGELOG | ✅ |
 | Refinement audit/design | STEPS 3–4 | ANALYSIS + DESIGN | ✅ |
+| Prompt §§1–43 map | prompt text | PROMPT_COMPLIANCE | ✅ |
 
 ## 2. Audit checklist (prompt §37)
 
@@ -54,8 +55,7 @@
 
 1. Firmware compile/hardware behavior unverified HERE (no XC8/HW) — docs say
    so in TESTING §4, BUILD, and every affected component doc.
-2. Serial-live tests skip without pyserial/hardware — asserted as skips, listed
-   in test-cases.md and TESTING §2.
+2. Serial-loop tests need pyserial (`socket://` covers the loop without hardware); real-port tests still need hardware — asserted as skips, listed in test-cases.md and TESTING §2.
 3. No mypy/pylint gate (not installed; optional, unenforced) — TESTING §4.
 4. No GUI → no UI-component docs, no responsive matrix (N/A with reasons in
    ACCESSIBILITY; UI template section deliberately omitted per "relevant only").

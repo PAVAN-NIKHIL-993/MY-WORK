@@ -1,4 +1,4 @@
-# Test Cases (all 26, by suite)
+# Test Cases (all 28, by suite)
 
 > Source of truth: [`tests/`](../../tests/__init__.py). Helpers: `load_module`
 > (file-load, dirs contain `-`) + `run_cli` (subprocess, no shell, 60 s timeout).
@@ -49,5 +49,11 @@
 | `test_bad_baud_rejected` | (pyserial) `--baud 0` → exit 2 |
 | `test_negative_seconds_rejected` | (pyserial) `--seconds -5` → exit 2 |
 
-Last run: `Ran 26 tests … OK (skipped=5)` — the 5 conditional skips (no pyserial
-in sandbox) are expected and documented, not failures.
+## `test_serial_live.py` (2, needs pyserial)
+
+| Test | Asserts |
+|---|---|
+| `test_socket_capture_end_to_end` | stdlib TCP server → `socket://` → exit 0, CSV header + exact 3 raw lines, `Saved 3 lines` |
+| `test_write_failure_midrun` | `/dev/full` (Linux) → exit 1 + `ERROR`/`write` on stderr |
+
+Last run: `Ran 28 tests … OK (skipped=1 with pyserial; skipped=7 without)` — skips are the missing-dep guard itself (pyserial present) or pyserial/hardware-dependent cases (absent); all expected and documented, not failures.

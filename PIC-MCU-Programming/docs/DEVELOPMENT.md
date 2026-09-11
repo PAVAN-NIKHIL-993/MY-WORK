@@ -3,7 +3,7 @@
 ## 1. Everyday commands (run from `PIC-MCU-Programming/`)
 
 ```bash
-python -m unittest discover -s tests     # 26 tests, expect OK
+python -m unittest discover -s tests     # 28 tests, expect OK
 python scripts/check_docs.py             # expect PASS (WARNs ok, FAILs not)
 python 05-python-tools/<tool>.py --help  # every tool documents itself
 ```
