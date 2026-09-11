@@ -43,12 +43,12 @@ python config_helper.py --chip 16F18345
 
 ## 4. Exit codes & tests
 
-All tools: `0` ok · `1` environment (`serial_logger` without pyserial) ·
+All tools: `0` ok · `1` environment (missing pyserial · output write failed · zero samples) ·
 `2` usage/bad input · `3` serial device failure (`serial_logger`).
 Errors go to **stderr** with a fix hint; data goes to stdout.
 
 ```bash
-python -m unittest discover -s tests   # 26 tests from the topic root
+python -m unittest discover -s tests   # 28 tests from the topic root
 ```
 
 ## 5. Troubleshooting
