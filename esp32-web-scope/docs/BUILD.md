@@ -9,7 +9,7 @@ parts that were not are different enough that a reader could easily assume the w
 |---|---|---|
 | Portable measurement core | `make test` | **89 checks, 0 failures** |
 | Embedded dashboard literal | `make embedded` | **12 checks, 0 failures** |
-| Dashboard page logic | `node test/test_dashboard.mjs` | **18 checks, 0 failures** |
+| Dashboard page logic | `node test/test_dashboard.mjs` | **30 checks, 0 failures** |
 | Simulator round trip | `node tools/simulate.mjs` | Frames and commands **verified manually** |
 | Firmware compile | `arduino-cli compile …` | **NOT RUN — no toolchain in the build environment** |
 | Firmware on hardware | — | **NOT RUN — no hardware** |
@@ -93,12 +93,19 @@ as a dependency), stubs the canvas 2D context, injects a fake WebSocket, and ass
 on the recorded draw calls.
 
 ```
-18 checks, 0 failure(s)
+30 checks, 0 failure(s)
 ```
 
-It verifies that a 1 MHz / 50 % frame produces the right readouts, that the trace is drawn across
-two distinct voltage levels, that an invalid frame shows the empty state, and that moving a slider
-emits the matching command.
+It verifies that a 1 MHz / 50 % frame produces the right readouts, that an invalid frame shows the
+empty state, that moving a slider emits the matching command, and -- in the largest section -- that
+the trace geometry is a square wave rather than a set of ramps.
+
+That last group exists because the first renderer drew the waveform as **diagonal ramps**: it
+toggled the level and then advanced by the new level's duration, so every transition landed at a
+different x from the flat top before it. It also snapped the origin to a whole cycle, which made the
+X position control appear dead (a 10 % pan at 5 µs/div is exactly 5 periods of a 1 MHz signal, so
+the trace was pixel-identical). Both are now pinned by assertions: transitions must be vertical
+pairs at identical x, and no segment may change both x and y.
 
 **It does not verify appearance.** There is no screenshot test and no browser in the build
 environment, so layout, colour and spacing have not been seen rendered. The logic is checked; the

@@ -321,10 +321,24 @@ static scope::Measurement measureWithRmt() {
     g_rmt_div = want_div;
   }
 
+  // Discard anything already queued: it belongs to a previous acquisition and
+  // mixing the two would report a mixture of old and new edge timings.
+  size_t stale_size = 0;
+  for (int i = 0; i < 8; ++i) {
+    void* stale = xRingbufferReceive(rb, &stale_size, 0);
+    if (stale == nullptr) break;
+    vRingbufferReturnItem(rb, stale);
+  }
+
   rmt_rx_start(RMT_CHANNEL_0, true);
+
+  // A short timeout, not 50 ms. This runs inside loop(), so a long block would
+  // stall the HTTP server and the WebSocket for the same period; at 20 Hz that
+  // is more than the whole frame budget. 5 ms is long enough for a burst at any
+  // frequency the RMT path can measure and short enough to keep the UI live.
   size_t rx_size = 0;
   rmt_item32_t* items = static_cast<rmt_item32_t*>(
-      xRingbufferReceive(rb, &rx_size, pdMS_TO_TICKS(50)));
+      xRingbufferReceive(rb, &rx_size, pdMS_TO_TICKS(5)));
   rmt_rx_stop(RMT_CHANNEL_0);
 
   if (items == nullptr || rx_size == 0) {
@@ -414,7 +428,14 @@ static scope::Measurement measureWithCapture() {
   g_cap_count = 0;
   g_cap_overflow = false;
 
-  delay(5);  // let a burst accumulate
+  // Wait for edges without blocking the network for long: service the servers
+  // while polling. delay(5) here would stop the page updating at 20 Hz.
+  const uint32_t start = millis();
+  while (g_cap_count < scope::kMaxEdges && (millis() - start) < 20) {
+    server.handleClient();
+    webSocket.loop();
+    delay(1);
+  }
 
   scope::EdgeBurst burst;
   const uint8_t n = g_cap_count;

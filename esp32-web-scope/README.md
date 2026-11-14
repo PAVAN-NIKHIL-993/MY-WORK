@@ -228,8 +228,9 @@ Expected output:
 
 ```
 89 checks, 0 failure(s)
+web_ui.cpp is in sync with the page
 12 checks, 0 failure(s)
-18 checks, 0 failure(s)
+30 checks, 0 failure(s)
 45 checks, 0 failure(s)
 all verifiable checks passed
 ```
@@ -325,6 +326,17 @@ was wrong, because the rewrite is only justified by the failures.
 | 9 | `StaticJsonDocument<4096>` for a 1024-point frame | Frame silently truncated |
 | 10 | `PCNT.counter_l_lim` set to −1 with a signed read | Negative residue can be mistaken for a count |
 
+A second table records defects found in **this** implementation during review, because the same
+standard applies to both:
+
+| # | Defect | Effect |
+|---|---|---|
+| 11 | Trace advanced by the new level's duration after toggling | Every transition landed at a different x, so a square wave drew as diagonal ramps |
+| 12 | Trace origin snapped to a whole cycle | X position appeared dead; a 10 % pan is exactly 5 periods of a 1 MHz signal at 5 µs/div |
+| 13 | BW overlay computed phase from x=0 | Overlay sat up to half a screen out of alignment with the trace |
+| 14 | `duty_permille` tested for truthiness | A genuine 0 % duty (signal stuck low) displayed as `---`, i.e. "no measurement" |
+| 15 | `web_ui.cpp` maintained by hand | One-character drift between the page and the shipped firmware, invisible until boot |
+
 Each of these is fixed or removed. The relevant fixes:
 
 - `RMT_CLK_DIV` is now **1** (12.5 ns), so 1 MHz resolves to exactly 40 ticks.
@@ -332,6 +344,8 @@ Each of these is fixed or removed. The relevant fixes:
 - The gate uses `esp_timer_get_time()`, not `millis()`.
 - No synthetic `buildWaveform`; the trace is explicitly a reconstruction, labelled as such.
 - The FFT view is removed rather than shipped wrong.
+- The trace is built by a pure `traceGeometry()` function that walks real edges, so it draws square
+  corners, and `make embedded` fails if `web_ui.cpp` has drifted from the page it was generated from.
 
 ---
 
@@ -355,7 +369,8 @@ esp32-web-scope/
 │   └── dashboard_preview.html       the page, standalone, for the simulator
 ├── tools/
 │   ├── simulate.mjs                 fake device + web server for UI work
-│   └── check_netlist.py             netlist vs BOM consistency check
+│   ├── check_netlist.py             netlist vs BOM consistency check
+│   └── embed_page.py                regenerates web_ui.cpp from the page
 └── docs/
     ├── BUILD.md                     toolchain, versions, what is and isn't verified
     ├── DESIGN.md                    why these peripherals, with the arithmetic
@@ -374,9 +389,9 @@ What was actually run, and what was not:
 |---|---|
 | `scope_core` unit tests | **89/89 pass** (g++ 12.2, `-Wall -Wextra`, zero warnings) |
 | Embedded dashboard literal | **12/12 pass** (compiles `web_ui.cpp` on the host) |
-| Dashboard logic tests | **18/18 pass** (jsdom, real page, stubbed canvas) |
+| Dashboard logic tests | **30/30 pass** (jsdom, real page, stubbed canvas) |
 | Netlist ↔ BOM consistency | **45/45 pass** (`make netlist`) |
-| **Total verifiable** | **164 checks, 0 failures** (`make test`) |
+| **Total verifiable** | **176 checks, 0 failures** (`make test`) |
 | Dashboard rendering | Verified by assertion (two voltage levels, >20 draw ops), **not** by visual screenshot |
 | Simulator round trip | **Verified**: frames arrive, commands mutate state |
 | Firmware compiles | **NOT VERIFIED** — no ESP32 toolchain was available |
