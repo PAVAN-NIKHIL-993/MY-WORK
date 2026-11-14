@@ -2,7 +2,7 @@
 #
 #   make test      everything that can be verified without ESP32 hardware
 #   make core      compile and run the portable C++ measurement tests
-#   make embedded  compile the embedded dashboard and check the page survived
+#   make embedded  check the embedded page is in sync and survived embedding
 #   make dashboard headless test of the web page (needs node + sibling jsdom)
 #   make netlist   check the carrier netlist against the BOM
 #   make clean     remove build products
@@ -39,12 +39,14 @@ core: $(TEST_BIN)
 # device, which is otherwise invisible until boot.
 # ---------------------------------------------------------------------------
 $(UI_BIN): firmware/esp32_web_scope/web_ui.cpp test/test_embedded_ui.cpp \
-           firmware/esp32_web_scope/web_ui.h test/shim/Arduino.h
+           firmware/esp32_web_scope/web_ui.h test/shim/Arduino.h \
+           test/dashboard_preview.html tools/embed_page.py
 	@mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) -Itest/shim -Ifirmware/esp32_web_scope -o $(UI_BIN) \
 	  test/test_embedded_ui.cpp firmware/esp32_web_scope/web_ui.cpp
 
 embedded: $(UI_BIN)
+	@python3 tools/embed_page.py --check
 	@./$(UI_BIN)
 
 # ---------------------------------------------------------------------------

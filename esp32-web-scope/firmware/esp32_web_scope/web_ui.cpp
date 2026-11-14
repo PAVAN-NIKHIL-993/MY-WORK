@@ -1,9 +1,11 @@
 // ---------------------------------------------------------------------------
 // web_ui.cpp - the dashboard HTML, stored in flash.
 //
-// Generated from test/dashboard_preview.html; edit the page, not this file.
-// It is a raw string literal so no escaping is needed and the page stays
-// byte-for-byte what a browser would see.
+// GENERATED FILE - do not edit. Source: test/dashboard_preview.html
+// Regenerate with:  python3 tools/embed_page.py
+//
+// The page is embedded as a raw string literal so no escaping is needed and what
+// the device serves is byte-for-byte the page that was tested.
 //
 // test/test_embedded_ui.cpp compiles this file on the host and checks that the
 // page survived embedding, so a broken literal cannot reach the device.
@@ -442,11 +444,16 @@ function updateReadouts() {
   $("rPeriod").textContent = valid ? fmtTime(m.period_ns) : "---";
   $("rHigh").textContent   = valid ? fmtTime(m.high_ns) : "---";
   $("rLow").textContent    = valid ? fmtTime(m.low_ns) : "---";
-  $("rDuty").textContent   = valid && m.duty_permille ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
+  // 0 % is a real measurement (a signal stuck low), not a missing one, so test
+  // for the field being present rather than for it being truthy. The old
+  // `&& m.duty_permille` reported a genuine 0 % as "---".
+  $("rDuty").textContent   = valid && typeof m.duty_permille === "number"
+    ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
   $("rEdges").textContent  = valid ? m.edges : "---";
 
   $("pfreq").textContent = valid ? fmtFreq(m.freq_mhz) : "---";
-  $("pduty").textContent = valid && m.duty_permille ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
+  $("pduty").textContent = valid && typeof m.duty_permille === "number"
+    ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
   $("nodata").classList.toggle("show", !valid);
 
   const names = ["PCNT", "RMT", "Capture"];
@@ -706,79 +713,162 @@ function render() {
   }
 
   const m = state.meas;
-  const periodNs = m.period_ns;
-  const highNs = m.high_ns || periodNs * 0.5;
-
-  // Time across the screen = 10 divisions, scaled by X zoom.
-  const spanNs = TIMEBASES[c.tbIdx].usPerDiv * 1000 * 10 / (c.xZoomX10 / 10);
-
-  // Amplitude mapping. The input is logic; Vpp is 3.3 V by convention for a
-  // logic-high signal, and the vertical gain comes from V/div.
-  const vTop = zeroY - (3.3 / vPerDiv) * (h / rows) * (c.yZoomX10 / 10);
-  const vBot = zeroY;
-
-  const xStart = w * 0.5 - (w * (c.xOffsetPct / 100));
-  const nsToPx = w / spanNs;
+  const geom = traceGeometry(m, c, w, h, zeroY, vPerDiv, rows);
+  if (!geom) return;
 
   ctx.strokeStyle = "#22d3ee";
   ctx.lineWidth = 2 * dpr;
-  ctx.lineJoin = "round";
+  ctx.lineJoin = "miter";
+  ctx.lineCap = "butt";
   ctx.beginPath();
-
-  // Draw as a sequence of edges: exact vertical transitions and flat tops, which
-  // is what a reconstruction should look like. Sampling this into pixels would
-  // just alias when the period is only a few pixels wide.
-  let t = -((xStart) / nsToPx);   // ns at x = 0
-  let first = true;
-  const maxSegments = 4000;
-  let segments = 0;
-
-  // Find the phase where the first rising edge lands at or after x = 0.
-  const period = periodNs;
-  const startPhase = ((-t) % period + period) % period;
-  t += startPhase;
-
-  let level = 1; // assume we start mid-high; corrected below by duty
-  let nextEdge = t;
-  let isHigh = startPhase < highNs;
-
-  ctx.moveTo(first ? 0 : 0, isHigh ? vTop : vBot);
-
-  while (nextEdge < spanNs && segments++ < maxSegments) {
-    const x = nextEdge * nsToPx;
-    if (x < 0) { nextEdge += (isHigh ? highNs : (period - highNs)); continue; }
-    ctx.lineTo(x + 0.5, isHigh ? vTop : vBot);
-    isHigh = !isHigh;
-    nextEdge += isHigh ? (period - highNs) : highNs;
-    ctx.lineTo(Math.min(nextEdge, spanNs) * nsToPx + 0.5, isHigh ? vTop : vBot);
-  }
+  strokePolyline(ctx, geom.points);
   ctx.stroke();
 
-  // ---- BW limit: a moving average over the *drawn* reconstruction.
-  // This is honest: it filters the picture, not a measurement. It visually
-  // demonstrates what a bandwidth limit does, and the readouts are untouched.
+  // ---- BW limit: a boxcar average over the *drawn* reconstruction.
+  // This filters the picture, not a measurement, and the readouts are untouched.
+  // It samples the same geometry as the trace so the two cannot drift apart.
   if (c.bwOn) {
     ctx.strokeStyle = "rgba(251,191,36,.85)";
     ctx.lineWidth = 2 * dpr;
     ctx.beginPath();
-    const win = c.bwSize;
-    for (let px = 0; px <= w; px += Math.max(2, 2 * dpr)) {
-      // Average the ideal square over `win` pixels either side, in the time
-      // domain, which is exactly a boxcar low-pass on the drawn trace.
-      const centreNs = (px / nsToPx);
-      let acc = 0, n = 0;
-      for (let k = -win; k <= win; k++) {
-        const ns = centreNs + k * (spanNs / w);
-        const phase = ((ns % period) + period) % period;
-        acc += (phase < highNs) ? vTop : vBot;
-        n++;
-      }
-      const y = acc / n;
-      if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
-    }
+    strokePolyline(ctx, boxcarTrace(geom, c.bwSize));
     ctx.stroke();
   }
 }
+
+// ---------------------------------------------------------------- geometry
+//
+// The trace is built as a polyline in *pixel* space by a pure function, so the
+// awkward parts (phase alignment, the edge that is already in progress, the
+// pixel ceiling at extreme zoom) can be tested without a canvas.
+//
+// The previous version emitted diagonal ramps instead of vertical edges: it
+// toggled the level and then advanced by the NEW level's duration, so each
+// transition landed at a different x. A square wave drawn that way looks like a
+// sawtooth, which is exactly wrong for a scope.
+
+const MAX_SEGMENTS = 20000;
+
+// Returns {points:[[x,y],...], period, high, vTop, vBot, spanNs, nsToPx, xCentre}
+// or null if the measurement cannot be drawn.
+function traceGeometry(m, c, w, h, zeroY, vPerDiv, rows) {
+  const period = m.period_ns;
+  if (!period || period <= 0) return null;
+
+  // A logic input is 0 V or 3.3 V. If the firmware has no duty figure (PCNT with
+  // no RMT companion) fall back to a square rather than dividing by zero.
+  let high = m.high_ns;
+  if (!high || high <= 0 || high >= period) high = period / 2;
+
+  const spanNs = (TIMEBASES[c.tbIdx].usPerDiv * 1000 * 10) / (c.xZoomX10 / 10);
+  const nsToPx = w / spanNs;
+
+  // Vertical mapping. The bottom of the trace sits on the ground reference and
+  // the top is one logic-high above it, scaled by V/div and Y zoom.
+  const vBot = zeroY;
+  const vTop = zeroY - (3.3 / vPerDiv) * (h / rows) * (c.yZoomX10 / 10);
+
+  // Horizontal origin: screen centre, nudged by the X position control.
+  const xCentre = w / 2 + w * (c.xOffsetPct / 100);
+  const nsAtX0 = -xCentre / nsToPx;
+
+  // Walk the actual edges of the waveform, starting one edge BEFORE the left
+  // edge so the trace enters the screen at the right level.
+  //
+  // Two bugs lived here before:
+  //   1. The walk began at x=0 and stepped by `high` / `period-high`, so it never
+  //      coincided with a real edge unless the phase happened to be zero. The
+  //      picture was therefore phase-locked to the left edge and panning moved
+  //      nothing (measured: 0 px shift for a 10 % pan).
+  //   2. Each transition advanced by the NEW level's duration, so the vertical
+  //      edge landed at a different x from the flat top that preceded it and the
+  //      waveform drew as diagonal ramps.
+  //
+  // The walk below is index-based: edge k of the cycle is at
+  // origin + k*(period or high), computed from a single origin, so a pan shifts
+  // every edge by exactly the same number of pixels.
+  const xOf = (ns) => ns * nsToPx + xCentre;
+
+  // First rising edge at or after the left edge.
+  const riseNs = nsAtX0 + ((((period - (nsAtX0 % period)) % period) + period) % period);
+
+  // State at the left edge, and the edge that produced it.
+  const phaseAtLeft = (((nsAtX0 % period) + period) % period);
+  const startHigh = phaseAtLeft < high;
+
+  const points = [];
+  let isHigh = startHigh;
+  // The edge just before the left edge, so the first flat segment is complete.
+  let ns = startHigh ? riseNs - period : riseNs - (period - high);
+  let segments = 0;
+
+  // Emit the segment currently spanning x = 0, clipped to the left edge, then
+  // walk forward. Clipping with max() rather than dropping the segment is what
+  // keeps the polyline continuous: dropping it left a gap that the renderer
+  // closed with a diagonal.
+  while (segments < MAX_SEGMENTS) {
+    const nextNs = ns + (isHigh ? high : period - high);
+    const xa = Math.max(0, xOf(ns));
+    const xb = Math.min(w, xOf(nextNs));
+
+    if (xOf(ns) > w) break;               // past the right edge
+    if (xOf(nextNs) >= 0) {
+      points.push([xa, isHigh ? vTop : vBot]);
+      points.push([xb, isHigh ? vTop : vBot]);
+      // Vertical transition at xb, same x, opposite level.
+      points.push([xb, isHigh ? vBot : vTop]);
+    }
+    isHigh = !isHigh;
+    ns = nextNs;
+    segments++;
+  }
+  if (points.length === 0) return null;
+
+  return { points, period, high, vTop, vBot, spanNs, nsToPx, xCentre, widthPx: w };
+}
+
+// Draw a polyline, skipping the degenerate zero-length segments that arise when
+// the period is only a few pixels wide.
+function strokePolyline(ctx, points) {
+  if (!points || points.length === 0) return;
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) {
+    const [x, y] = points[i];
+    const [px, py] = points[i - 1];
+    if (x === px && y === py) continue;
+    ctx.lineTo(x, y);
+  }
+}
+
+// Boxcar average of the ideal square over +/- `win` pixels about each sample.
+// Computed in the time domain from the same geometry as the trace, so the
+// overlay tracks X position and X zoom exactly instead of assuming x=0 is
+// phase 0 (the previous version was misaligned by half the screen).
+function boxcarTrace(geom, win) {
+  const { period, high, vTop, vBot, nsToPx, xCentre, widthPx } = geom;
+  const nWin = Math.max(1, Math.round(win));
+  // One sample per pixel is the natural resolution for a display filter.
+  const stepNs = 1 / nsToPx;
+  const maxX = Math.min(widthPx, 4000);  // bound the work on very wide canvases
+  const points = [];
+  for (let x = 0; x <= maxX; x += 1) {
+    const centreNs = (x - xCentre) / nsToPx;
+    let acc = 0;
+    let n = 0;
+    for (let k = -nWin; k <= nWin; k++) {
+      const ns = centreNs + k * stepNs;
+      const phase = ((ns % period) + period) % period;
+      acc += phase < high ? vTop : vBot;
+      n++;
+    }
+    points.push([x, acc / n]);
+  }
+  return points;
+}
+
+// Exposed for the headless tests.
+window.traceGeometry = traceGeometry;
+window.boxcarTrace = boxcarTrace;
 
 // ---------------------------------------------------------------- boot
 window.addEventListener("resize", resize);
