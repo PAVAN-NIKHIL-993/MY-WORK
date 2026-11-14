@@ -4,7 +4,7 @@
 - **Location:** [`05-python-tools/`](../../05-python-tools/README.md) — 3 tools + `requirements.txt` + README.
 - **Responsibilities:** `baud_calc` (SPBRG + error%, `<2%` gate); `serial_logger` (UART→console+CSV, Ctrl+C-safe); `config_helper` (3-chip `#pragma` printer).
 - **Public interface:** CLIs with `--help`; exit codes 0/1/2/3 ([TESTING](../TESTING.md)); stdout=data, stderr=diagnostics.
-- **Dependencies:** stdlib everywhere; `pyserial>=3.5` for the logger only. **Consumers:** humans at the bench; capstone capture step; tests (26 checks).
+- **Dependencies:** stdlib everywhere; `pyserial>=3.5` for the logger only. **Consumers:** humans at the bench; capstone capture step; tests (28 cases).
 - **Internal architecture:** 3 standalone scripts (D3); `spbrg_for()` pure math; logger = open→loop→flush/line; helper = `BLOCKS` dict + template `.format(osc=…)`.
 - **Data:** SPBRG ints + error floats; CSV rows; config text lines. Stateless across runs.
 - **Error handling:** positive-int validation; `SerialException`→exit 3; `OSError`→exit 2; missing pyserial→exit 1. All covered by tests.

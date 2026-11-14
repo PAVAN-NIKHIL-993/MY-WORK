@@ -14,13 +14,15 @@ and engineering-grade documentation.
 | Stage | Folder | Contents |
 |---|---|---|
 | Guides | `01-docs/` | PIC family, toolchain setup, wiring/power |
+| Supplemental theory | `electronics-fundamentals/` | Passive components, analog/digital basics, 8051 concepts, review |
+| Supplemental Arduino project | `lc-inductance-meter/` | LC inductance-meter prototype (separate from PIC stages) |
 | Basics | `02-basics/` | Blink + button × 2 chips |
 | Intermediate | `03-intermediate/` | Timer0, EXT-INT, UART, ADC, PWM |
 | Advanced | `04-advanced/` | I2C scanner, EEPROM, WDT/sleep, SPI, config guide |
 | PC tools | `05-python-tools/` | `baud_calc`, `serial_logger`, `config_helper` |
 | Capstone | `06-projects/` | `temp_logger` firmware + `analyze_log.py` + quiz |
 | Engineering | `docs/` | Architecture, structure, setup, testing, ops… (this system) |
-| Tests | `tests/` | 26 automated checks (stdlib `unittest`) |
+| Tests | `tests/` | 28 automated test cases (`unittest`; some live cases may skip) |
 | Scripts | `scripts/` | `check_docs.py` link/source verifier |
 
 ## Key capabilities
@@ -33,6 +35,7 @@ and engineering-grade documentation.
 ## Technology stack
 
 - **Firmware:** C (MPLAB XC8, Free mode OK) for PIC16F877A / PIC16F18345.
+- **Supplemental prototype:** Arduino C++ for a 5 V ATmega328P board in `lc-inductance-meter/`; separate from the PIC firmware stages and not hardware-validated.
 - **PC tools:** Python 3.10+ (stdlib only, except `pyserial>=3.5` for the logger).
 - **Tools/hardware:** MPLAB X IDE, PICkit 3/4/5, USB-UART module, breadboard parts.
 - **Docs/tests:** Markdown + Mermaid; `unittest`; no frameworks, no services.
@@ -56,7 +59,7 @@ Details: [ARCHITECTURE](docs/ARCHITECTURE.md) · [data flow](docs/architecture/d
 python 05-python-tools/baud_calc.py --fosc 20000000 --baud 9600
 python 05-python-tools/serial_logger.py --list
 
-# Tests (26 checks, stdlib only)
+# Tests (28 cases; live cases may skip without pyserial/hardware)
 python -m unittest discover -s tests
 
 # Docs integrity
@@ -99,7 +102,10 @@ Core: [ARCHITECTURE](docs/ARCHITECTURE.md) · [PROJECT_STRUCTURE](docs/PROJECT_S
 
 Deep dives: [architecture/](docs/architecture/system-overview.md) · [modules/](docs/modules/python-tools.md) ·
 [components/](docs/components/temp-logger-16f877a.md) · [api/](docs/api/overview.md) ·
-[database/](docs/database/schema.md) · [testing/](docs/testing/test-strategy.md) · [guides/](docs/guides/developer-guide.md)
+[database/](docs/database/schema.md) · [testing/](docs/testing/test-strategy.md) · [guides/](docs/guides/developer-guide.md) ·
+[processor comparison](docs/processor-comparison.md) · [processor selection guide](docs/guides/processor-selection-guide.md) ·
+[electronics fundamentals](electronics-fundamentals/README.md) ·
+[LC inductance meter prototype](lc-inductance-meter/README.md)
 
 History: [ANALYSIS](docs/ANALYSIS.md) (refinement audit) · [DESIGN](docs/DESIGN.md) (refinement plan) ·
 [ROADMAP](ROADMAP.md) (original build log, historical).

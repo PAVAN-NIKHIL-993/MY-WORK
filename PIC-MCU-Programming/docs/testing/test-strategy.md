@@ -29,6 +29,7 @@
 
 ## 3. Coverage honesty
 
-Claimed: 26 automated checks over 4 tools + docs gate. NOT claimed: firmware
-compilation, on-chip behavior, timing measurements. See the matrix in
-[TESTING](../TESTING.md) and open gaps in [coverage](../DOCUMENTATION_COVERAGE.md).
+Claimed: 28 automated test cases across the four Python tools; the docs gate
+is checked separately. NOT claimed: firmware compilation, on-chip behavior, or
+timing measurements. See the matrix in [TESTING](../TESTING.md) and open gaps in
+[coverage](../DOCUMENTATION_COVERAGE.md).

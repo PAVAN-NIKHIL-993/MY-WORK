@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">DIY LC inductance meter prototype schematic</title>
+  <desc id="desc">Connection diagram for a 5 volt ATmega328P Arduino, an LM393 comparator, a parallel LC tank, external pull-up, bypass capacitor, and negative clamp diode. It includes a warning to release the pulse pin and verify comparator input limits.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#111c2f"/>
+    </linearGradient>
+    <style>
+      text { font-family: Arial, sans-serif; }
+      .wire { fill: none; stroke: #d3deea; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .thin { fill: none; stroke: #a9b9ca; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .power { stroke: #f87171; }
+      .ground { stroke: #4ade80; }
+      .signal { stroke: #38bdf8; }
+      .output { stroke: #c084fc; }
+      .component { fill: #172338; stroke: #e2e8f0; stroke-width: 2; }
+      .label { fill: #e5edf6; font-size: 17px; }
+      .small { fill: #bdc9d7; font-size: 14px; }
+      .strong { fill: #f8fafc; font-size: 19px; font-weight: bold; }
+    </style>
+  </defs>
+  <rect width="1440" height="810" rx="14" fill="url(#background)"/>
+  <text x="720" y="42" text-anchor="middle" fill="#7dd3fc" font-size="27" font-weight="bold">DIY LC Inductance Meter — Prototype Connection Diagram</text>
+  <text x="720" y="70" text-anchor="middle" fill="#a9b9ca" font-size="16">5 V ATmega328P Arduino · LM393 DIP-8 · parallel LC tank · not a calibrated LCR meter</text>
+
+  <!-- Supply rails -->
+  <line x1="65" y1="120" x2="1380" y2="120" class="wire power"/>
+  <text x="68" y="108" fill="#fca5a5" font-size="17" font-weight="bold">+5 V — connect Arduino 5V and U1 pin 8</text>
+  <line x1="65" y1="650" x2="1380" y2="650" class="wire ground"/>
+  <text x="68" y="678" fill="#86efac" font-size="17" font-weight="bold">GND — common Arduino / comparator / tank return</text>
+
+  <!-- Arduino excitation terminal -->
+  <rect x="45" y="255" width="180" height="105" rx="12" fill="#102b25" stroke="#34d399" stroke-width="2"/>
+  <text x="135" y="284" text-anchor="middle" fill="#6ee7b7" font-size="17" font-weight="bold">Arduino D8</text>
+  <text x="135" y="309" text-anchor="middle" class="small">ATmega328P PB0</text>
+  <text x="135" y="335" text-anchor="middle" class="small">pulse, then Hi-Z</text>
+  <line x1="225" y1="310" x2="270" y2="310" class="wire signal"/>
+
+  <!-- R1 excitation resistor and tank node -->
+  <line x1="270" y1="310" x2="292" y2="310" class="wire signal"/>
+  <rect x="292" y="291" width="82" height="38" rx="5" class="component" stroke="#fbbf24"/>
+  <text x="333" y="316" text-anchor="middle" fill="#fde68a" font-size="16" font-weight="bold">R1 1 kΩ</text>
+  <line x1="374" y1="310" x2="430" y2="310" class="wire signal"/>
+  <circle cx="430" cy="310" r="7" fill="#38bdf8" stroke="#f8fafc" stroke-width="2"/>
+  <text x="430" y="280" text-anchor="middle" fill="#7dd3fc" font-size="16" font-weight="bold">TANK NODE</text>
+
+  <!-- Tank bus to comparator -->
+  <line x1="430" y1="310" x2="770" y2="310" class="wire signal"/>
+  <circle cx="510" cy="310" r="5" fill="#38bdf8"/>
+  <circle cx="620" cy="310" r="5" fill="#38bdf8"/>
+  <circle cx="720" cy="310" r="5" fill="#38bdf8"/>
+
+  <!-- Lx branch -->
+  <line x1="510" y1="310" x2="510" y2="370" class="wire signal"/>
+  <path d="M510 370 C478 370 478 393 510 393 C478 393 478 416 510 416 C478 416 478 439 510 439 C478 439 478 462 510 462 C478 462 478 485 510 485" fill="none" stroke="#fb7185" stroke-width="4"/>
+  <line x1="510" y1="485" x2="510" y2="650" class="wire"/>
+  <text x="455" y="418" text-anchor="end" fill="#fda4af" font-size="18" font-weight="bold">Lx</text>
+  <text x="455" y="441" text-anchor="end" class="small">inductor under test</text>
+  <text x="455" y="461" text-anchor="end" class="small">(e.g. 10 mH)</text>
+
+  <!-- C1 branch -->
+  <line x1="620" y1="310" x2="620" y2="405" class="wire signal"/>
+  <line x1="595" y1="405" x2="645" y2="405" stroke="#22d3ee" stroke-width="5"/>
+  <line x1="595" y1="421" x2="645" y2="421" stroke="#22d3ee" stroke-width="5"/>
+  <line x1="620" y1="421" x2="620" y2="650" class="wire"/>
+  <text x="650" y="407" fill="#67e8f9" font-size="17" font-weight="bold">C1</text>
+  <text x="650" y="430" class="small">1.0 µF film</text>
+
+  <!-- D1 negative clamp: cathode at tank, anode at ground -->
+  <line x1="720" y1="310" x2="720" y2="388" class="wire signal"/>
+  <line x1="697" y1="388" x2="743" y2="388" stroke="#facc15" stroke-width="5"/>
+  <polygon points="701,430 739,430 720,394" fill="#facc15" stroke="#fde68a" stroke-width="1.5"/>
+  <line x1="720" y1="430" x2="720" y2="650" class="wire"/>
+  <text x="748" y="386" fill="#fde68a" font-size="14" font-weight="bold">K (band)</text>
+  <text x="748" y="433" fill="#fde68a" font-size="14" font-weight="bold">A</text>
+  <text x="748" y="463" fill="#fde68a" font-size="16" font-weight="bold">D1 1N4148</text>
+  <text x="748" y="484" class="small">negative clamp*</text>
+
+  <!-- U1A LM393 comparator -->
+  <line x1="770" y1="310" x2="790" y2="310" class="wire signal"/>
+  <line x1="790" y1="310" x2="790" y2="278" class="wire signal"/>
+  <line x1="790" y1="278" x2="820" y2="278" class="wire signal"/>
+  <polygon points="820,225 820,425 1015,325" fill="#172b48" stroke="#60a5fa" stroke-width="3"/>
+  <text x="845" y="278" fill="#4ade80" font-size="24" font-weight="bold">+</text>
+  <text x="845" y="365" fill="#fca5a5" font-size="24" font-weight="bold">−</text>
+  <text x="856" y="303" class="small">3 IN1+</text>
+  <text x="856" y="389" class="small">2 IN1−</text>
+  <text x="920" y="322" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="bold">U1A</text>
+  <text x="920" y="347" text-anchor="middle" class="small">LM393</text>
+  <text x="1014" y="310" text-anchor="end" class="small">1 OUT1</text>
+
+  <!-- IN1- ground reference -->
+  <line x1="820" y1="365" x2="785" y2="365" class="wire"/>
+  <line x1="785" y1="365" x2="785" y2="650" class="wire"/>
+  <circle cx="785" cy="650" r="5" fill="#4ade80"/>
+  <text x="770" y="392" text-anchor="end" class="small">0 V ref</text>
+
+  <!-- Comparator power pins -->
+  <line x1="920" y1="225" x2="920" y2="120" class="wire power"/>
+  <circle cx="920" cy="120" r="5" fill="#f87171"/>
+  <text x="932" y="215" fill="#fca5a5" font-size="14" font-weight="bold">8 VCC</text>
+  <line x1="920" y1="425" x2="920" y2="650" class="wire ground"/>
+  <circle cx="920" cy="650" r="5" fill="#4ade80"/>
+  <text x="932" y="448" fill="#86efac" font-size="14" font-weight="bold">4 GND</text>
+
+  <!-- Open-collector output, external pull-up R2, D5 -->
+  <line x1="1015" y1="325" x2="1060" y2="325" class="wire output"/>
+  <circle cx="1060" cy="325" r="6" fill="#c084fc" stroke="#f8fafc" stroke-width="1.5"/>
+  <line x1="1060" y1="325" x2="1060" y2="256" class="wire output"/>
+  <rect x="1042" y="192" width="36" height="64" rx="4" class="component" stroke="#c084fc"/>
+  <text x="1060" y="220" text-anchor="middle" fill="#e9d5ff" font-size="14" font-weight="bold">10k</text>
+  <text x="1060" y="239" text-anchor="middle" fill="#e9d5ff" font-size="13">R2</text>
+  <line x1="1060" y1="192" x2="1060" y2="120" class="wire power"/>
+  <circle cx="1060" cy="120" r="5" fill="#f87171"/>
+  <line x1="1060" y1="325" x2="1195" y2="325" class="wire output"/>
+  <rect x="1195" y="282" width="145" height="86" rx="10" fill="#261a37" stroke="#c084fc" stroke-width="2"/>
+  <text x="1267" y="313" text-anchor="middle" fill="#e9d5ff" font-size="17" font-weight="bold">Arduino D5</text>
+  <text x="1267" y="340" text-anchor="middle" class="small">INPUT · external R2</text>
+
+  <!-- C2 across rails; install it physically next to U1 pins 8 and 4 -->
+  <line x1="1370" y1="120" x2="1370" y2="424" class="thin power"/>
+  <line x1="1348" y1="424" x2="1392" y2="424" stroke="#a78bfa" stroke-width="5"/>
+  <line x1="1348" y1="441" x2="1392" y2="441" stroke="#a78bfa" stroke-width="5"/>
+  <line x1="1370" y1="441" x2="1370" y2="650" class="thin ground"/>
+  <text x="1330" y="423" text-anchor="end" fill="#c4b5fd" font-size="16" font-weight="bold">C2 0.1 µF</text>
+  <text x="1330" y="446" text-anchor="end" class="small">at U1 pins 8/4</text>
+
+  <!-- Footer cautions and unused comparator -->
+  <rect x="45" y="705" width="1350" height="82" rx="10" fill="#311b1b" stroke="#f87171" stroke-width="1.5"/>
+  <text x="65" y="733" fill="#fecaca" font-size="15" font-weight="bold">* D1 polarity shown for negative clamping: cathode/band to tank, anode to GND. Its forward drop may still exceed U1's input limit.</text>
+  <text x="65" y="756" fill="#e2e8f0" font-size="14">U1B unused: pins 5 (IN2+) and 6 (IN2−) → GND; pin 7 (OUT2) NC. Check the tank waveform against the exact LM393 datasheet before connecting pin 3.</text>
+  <text x="65" y="777" fill="#fcd34d" font-size="14" font-weight="bold">D8 must be high-impedance during ringing; this is a prototype diagram, not a bench-validated instrument.</text>
+</svg>

@@ -1,0 +1,200 @@
+DIY LC INDUCTANCE METER — BUILD GUIDE
+====================================
+
+PROJECT TYPE
+------------
+A low-voltage Arduino/LM393 experiment that estimates an unknown inductance
+from the ringing frequency of a parallel LC tank.
+
+This is an educational prototype, not a calibrated instrument. It measures
+inductance only; it is not a full LCR meter. The schematic and sketch have not
+been verified on physical hardware in this workspace. Do not use readings for
+production, safety, or component qualification.
+
+IMPORTANT CORRECTIONS AND LIMITS
+--------------------------------
+1. The Arduino excitation pin must be released to high impedance after the
+   short pulse. Leaving it actively LOW clamps/damps the LC tank.
+2. The sketch uses D8 (ATmega328P PB0), not D13. D13 has an onboard LED/load
+   on common Uno/Nano boards. The sketch uses ATmega328P port registers for a
+   fast release; it needs port-level adaptation for another MCU/board.
+3. The source text labels D1 anode-to-tank and cathode-to-GND as a negative
+   clamp. That polarity clamps positive excursions. For a negative clamp,
+   connect D1 ANODE to GND and its banded CATHODE to the tank node.
+4. A 1N4148 forward drop may still allow the tank below the LM393's negative
+   input limit. The diode alone is not proof of safe input voltage. Check the
+   exact comparator datasheet and scope the tank before connecting U1 pin 3.
+   If the waveform exceeds common-mode or absolute-maximum limits, redesign
+   the input clamp/bias network; do not rely on internal protection diodes.
+5. LM393 output is open-collector: fit external R2 (10 kOhm) from pin 1 to
+   +5 V. Do not omit it. Tie unused comparator inputs (pins 5 and 6) to GND;
+   leave unused output pin 7 unconnected.
+6. The source's “high accuracy”, 10 uH–100 mH guaranteed range, fixed 50 Ohm
+   DCR cutoff, and <$2 cost claim are not verified. This sketch's pulseIn()
+   measurement is software-timed and becomes coarse at higher frequencies.
+
+IDEAL LC RELATION
+-----------------
+f0 = 1 / (2*pi*sqrt(Lx*C1))
+Lx = 1 / (4*pi^2*f0^2*C1)
+
+The real tank is damped and has coil resistance, parasitic capacitance,
+comparator offset/delay, wiring effects, and measurement quantization. The
+sketch treats a comparator HIGH pulse as approximately half a resonant cycle.
+Averaging reduces some random jitter, not systematic errors.
+
+With C1 = 1.0 uF, ideal frequencies are approximately:
+  Lx = 100 mH  -> 503 Hz
+  Lx =  10 mH  -> 1.59 kHz
+  Lx =   1 mH  -> 5.03 kHz
+  Lx = 100 uH  -> 15.9 kHz
+  Lx =  10 uH  -> 50.3 kHz
+Typical 16 MHz Uno-class pulseIn()/micros() resolution is on the order of
+microseconds (commonly about 4 us). Treat this as a rough mH-range experiment,
+not a reliable low-inductance meter. Better high-frequency readings require a
+suitable front end and hardware capture/frequency-measurement method.
+
+BILL OF MATERIALS
+-----------------
+Qty  Ref  Part
+---  ---  ---------------------------------------------------------------
+ 1   MCU  Arduino Uno/Nano/Pro Mini, ATmega328P, 5 V logic only
+ 1   U1   LM393 dual comparator, DIP-8; check exact-part ratings
+ 1   C1   1.0 uF film capacitor, preferably 1-5% (measure if possible)
+ 1   C2   0.1 uF ceramic bypass capacitor, mounted close to U1 pins 8 and 4
+ 1   R1   1 kOhm, 1/4 W; series excitation resistor
+ 1   R2   10 kOhm, 1/4 W; LM393 open-collector pull-up
+ 1   D1   1N4148 switching diode; negative-clamp orientation below
+ 2   --   Test clips/socket pins for Lx
+ 1   Lx   Unknown inductor under test
+
+A 3.3 V Pro Mini is not the target. Component prices and availability vary.
+
+LM393 DIP-8 PINOUT (TOP VIEW; NOTCH/DOT AT TOP)
+-----------------------------------------------
+Pin  Name    Connection
+---  ------  ------------------------------------------------------------
+ 1   OUT1    Arduino D5 and R2 (10 kOhm) to +5 V
+ 2   IN1-    GND reference (nominal zero threshold)
+ 3   IN1+    LC tank node, only after checking input voltage limits
+ 4   GND     Common GND
+ 5   IN2+    GND (defined input for unused comparator)
+ 6   IN2-    GND (defined input for unused comparator)
+ 7   OUT2    No connection (unused output)
+ 8   VCC     +5 V; bypass to pin 4 with C2
+
+Verify the exact package and manufacturer's datasheet before wiring. The
+classic LM393 is not rail-to-rail. Its input common-mode range and absolute
+maximum input voltage must be observed.
+
+CONNECTIONS
+-----------
+Arduino 5V --------------------------- +5 V rail
+Arduino GND -------------------------- GND rail (common reference)
+
+Arduino D8 (PB0) -- R1 1 kOhm -------- TANK NODE
+                                          |-- Lx terminal 1
+                                          |-- C1 terminal 1
+                                          |-- D1 cathode (band)
+                                          |-- U1 pin 3 (IN1+), after input check
+Lx terminal 2 ------------------------ GND rail
+C1 terminal 2 ------------------------ GND rail
+D1 anode ----------------------------- GND rail
+
+U1 pin 8 (VCC) ------------------------ +5 V rail
+U1 pin 4 (GND) ------------------------ GND rail
+C2 0.1 uF ----------------------------- directly across U1 pins 8 and 4
+U1 pin 2 (IN1-) ----------------------- GND rail
+U1 pin 1 (OUT1) ----------------------- Arduino D5
+U1 pin 1 (OUT1) -- R2 10 kOhm -------- +5 V rail
+U1 pins 5 (IN2+) and 6 (IN2-) -------- GND rail
+U1 pin 7 (OUT2) ----------------------- leave unconnected
+
+Lx and C1 are in parallel between the tank node and GND. All grounds must be
+common. Place C2 next to U1. For D1, the stripe/band (cathode) goes to the tank
+node; the unbanded anode goes to GND. D1 is a negative clamp, but it does not
+guarantee that U1 pin 3 is within its limits.
+
+ASSEMBLY STEPS
+--------------
+1. Use a low-voltage, current-limited 5 V supply and a 5 V ATmega328P board.
+   Do not connect the prototype to mains or a high-energy circuit.
+2. Connect Arduino 5V/GND to the breadboard rails and verify them with a meter.
+3. Insert the LM393 DIP-8 across the breadboard center gap. Find pin 1 from
+   the notch/dot and check the orientation.
+4. Connect U1 pin 8 to +5 V and pin 4 to GND. Place C2 directly across these
+   pins. Connect pin 2 to GND; connect unused pins 5 and 6 to GND; leave pin 7
+   open.
+5. Connect U1 pin 1 to Arduino D5 and fit R2 from pin 1 to +5 V.
+6. Connect Arduino D8 through R1 to the tank node. Connect C1 and the test
+   clips from the tank node to GND. Connect D1 with banded cathode to the tank
+   node and anode to GND.
+7. BEFORE connecting U1 pin 3, observe the tank waveform with an appropriate
+   oscilloscope/probe. Check its full positive and negative swing against the
+   exact LM393 input common-mode and absolute-maximum limits. Stop and redesign
+   the input clamp/bias network if the waveform is outside those limits.
+8. Only after that check, connect U1 pin 3 to the tank node. Verify the LM393
+   output at pin 1/D5 and confirm the tank continues ringing when D8 is released.
+
+SKETCH AND OPERATION
+--------------------
+Source file: lc_inductance_meter.ino
+Diagram:     schematic.svg
+Full project notes and calibration caveats: README.md
+
+The sketch assumes the wiring above, a 5 V ATmega328P board, C1 = 1.0 uF, and
+an external R2 pull-up. It uses PB0 registers because Arduino D8 maps to PB0
+on these boards. Port the register operations before using another MCU.
+
+1. Upload the sketch and open Serial Monitor at 9600 baud.
+2. With no inductor connected, confirm that the sketch reports no reliable
+   ringing instead of a plausible measurement.
+3. Connect the unknown inductor across the two test clips.
+4. Observe the frequency and estimated L. Repeat with a known reference part.
+
+CALIBRATION
+-----------
+Use a known, low-tolerance inductor, keeping C1, clips, and layout unchanged.
+The C_TANK_F setting should represent effective tank capacitance, including
+relevant parasitics. A one-point scale correction is:
+
+  C_new = C_old * (L_read / L_reference)
+
+Example: if a known 10.00 mH part reads 9.40 mH with C_old = 1.000 uF, a
+single-point adjustment is C_new about 0.940 uF. This compensates near that
+reference and setup; it does not prove accuracy across a broad range.
+
+TWO 5 mH INDUCTORS IN SERIES
+----------------------------
+For ideal uncoupled coils, Ltotal = L1 + L2 = 10 mH. If they are magnetically
+coupled, Ltotal = L1 + L2 +/- 2M; the sign depends on winding orientation and
+M is mutual inductance. Spacing/rotation can reduce coupling, but no fixed
+distance or angle guarantees zero coupling. Measure the assembled pair. Series
+DC resistance also adds and reduces Q/ring amplitude; there is no universal
+50 Ohm pass/fail limit.
+
+TROUBLESHOOTING
+---------------
+No pulses:
+  Check common ground, U1 supply/orientation, R2 pull-up, D5 wiring, D8 release,
+  coil continuity, and the tank waveform.
+
+Ring stops immediately:
+  Confirm D8 is not held LOW. Check R1, the parallel Lx/C1 connection, breadboard
+  contacts, and coil loss. Shorten test leads where practical.
+
+Readout unstable:
+  Check C1 value/tolerance, coil DCR/Q, contact resistance, probe loading,
+  comparator threshold/offset/noise, and signal amplitude.
+
+Low-inductance values jump:
+  The resonant frequency may exceed the useful timing range of pulseIn(). Use a
+  suitable hardware capture method and a front end designed for that frequency.
+
+SAFETY AND VERIFICATION
+-----------------------
+Use isolated, low-energy DC only. No mains use. Capacitors may retain charge;
+coils can generate transients. Do not connect 5 V signals to 3.3 V-only inputs.
+The exact tank waveform and LM393 input ratings must be verified before wiring
+pin 3. No Arduino toolchain or target hardware was available for compilation or
+bench verification in this workspace, so treat the sketch as a prototype.

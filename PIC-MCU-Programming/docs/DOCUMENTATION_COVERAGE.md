@@ -1,8 +1,9 @@
 # DOCUMENTATION_COVERAGE (STEP 11 audit)
 
-> Audit date: 2026-09-11 · Method: every row verified against the repo
-> (`check_docs.py --strict` green + file-by-file review). Machine check:
-> 72 Markdown files, 90+ link targets, 0 broken links, 0 unreferenced sources.
+> Review date: 2026-09-10 · Method: the prior implementation audit is retained;
+> the supplemental lessons and LC-meter rows/indexes were verified against the
+> added folders. Current machine check: 82 Markdown files, 103 distinct link
+> targets, 0 broken links, 0 unreferenced sources.
 
 ## 1. Coverage matrix
 
@@ -12,6 +13,8 @@
 | Build history | `ROADMAP.md` | kept historical + CHANGELOG continues it | ✅ |
 | Ignores | `.gitignore` | PROJECT_STRUCTURE §3 | ✅ |
 | Learning guides (3) | `01-docs/` | modules/learning-guides + guides/ | ✅ |
+| Supplemental electronics curriculum (6 lessons) | `electronics-fundamentals/` | indexed in its README + modules/learning-guides | ✅ |
+| Arduino LC-meter prototype | `lc-inductance-meter/` | README, sketch, SVG, plain-text build guide; status/limits stated | ✅ |
 | Stage READMEs (5) | `02…06/README.md` | respective modules/ docs | ✅ |
 | Basics firmware (4) | `02-basics/*.c` | modules/firmware-basics + 4 components/ | ✅ |
 | Intermediate fw (5) | `03-intermediate/*.c` | modules/firmware-intermediate + 5 components/ | ✅ |

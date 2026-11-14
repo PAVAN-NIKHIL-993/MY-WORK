@@ -3,14 +3,17 @@
 > Refinement era (prompt-driven STEPS 1–17). Original build history lives in
 > [ROADMAP](../ROADMAP.md) (7 steps, kept as historical record).
 
-## [Unreleased] — product refinement (2026-09-11)
+## [Unreleased] — product refinement (2026-09-10)
 
 ### Added
-- `tests/` — 26 automated `unittest` checks (baud math, config blocks, CSV
+- `tests/` — 28 automated `unittest` cases (baud math, config blocks, CSV
   parsing, CLI exit codes) + `tests/data/sample_temp.csv` fixture.
 - `scripts/check_docs.py` — fails on broken doc links/missing sources.
 - `docs/` engineering system (ARCHITECTURE … CHANGELOG + architecture/,
   modules/, components/, api/, database/, testing/, guides/).
+- `electronics-fundamentals/` concept curriculum and `lc-inductance-meter/`
+  Arduino prototype with sketch, schematic, and plain-text build guide (marked
+  unvalidated; separate from PIC firmware stages).
 - Exit-code contract (0/1/2/3) on all four Python tools.
 - `*.log` to `.gitignore`.
 - Live `socket://` capture test + `/dev/full` write-failure test (logger now accepts pyserial URLs).

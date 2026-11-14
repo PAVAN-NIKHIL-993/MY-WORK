@@ -22,7 +22,7 @@ flowchart TB
         CH["config_helper.py"] -.->|prints #pragma| P
     end
     subgraph V["Verification (this repo)"]
-        T["tests/ (26 unittest)"] -.-> L & BC & CH & A
+        T["tests/ (28 unittest)"] -.-> L & BC & CH & A
         D["scripts/check_docs.py"] -.-> DOC["docs/"]
     end
 ```

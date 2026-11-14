@@ -47,7 +47,7 @@ pc_time_iso,elapsed_s,raw_line
 ```
 
 Expected analysis: ~120 samples, sane room temp (≈ 20–35 °C), flat chart.
-**Touch the LM35** mid-capture — the chart should visibly rise. 
+**Touch the LM35** mid-capture — the chart should visibly rise.
 
 `analyze_log.py` exits: `0` ok · `1` no valid samples · `2` unreadable file
 (errors to stderr). Covered by `tests/test_analyze_log.py` (run

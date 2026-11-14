@@ -9,7 +9,9 @@
 | Directory | Purpose / role | Belongs | Must NOT belong |
 |---|---|---|---|
 | `PIC-MCU-Programming/` (root) | Topic entry: README, roadmap, ignores | README, ROADMAP, `.gitignore` | Source code, captures (`*.csv` ignored) |
-| `01-docs/` | Learning guides (human knowledge) | Concept/setup/wiring `.md` | Code, configs |
+| `01-docs/` | PIC learning guides (human knowledge) | Concept/setup/wiring `.md` | Code, configs |
+| `electronics-fundamentals/` | Supplemental electronics curriculum | Markdown lessons; no firmware | PIC-stage firmware or hardware-validation claims |
+| `lc-inductance-meter/` | Separate Arduino LC-inductance prototype | README, `.ino`, SVG, plain-text guide | PIC-stage integration or unverified accuracy claims |
 | `02-basics/` … `04-advanced/` | Firmware stages (increasing difficulty) | Standalone `.c` + stage README | Shared headers (by design: none) |
 | `05-python-tools/` | PC CLI tools | 3 tools + `requirements.txt` + README | Firmware, tests |
 | `06-projects/` | Capstone system | Firmware + analyzer + quiz + README | Stage examples |
@@ -22,6 +24,11 @@
 | File | Purpose (one line) | Detailed doc |
 |---|---|---|
 | `README.md` | Topic entry point (this product's front door) | §3 below |
+| `electronics-fundamentals/README.md` | Supplemental theory-track index | [electronics-fundamentals/](../electronics-fundamentals/README.md) |
+| `lc-inductance-meter/README.md` | Arduino LC-meter prototype, build limits, calibration | [LC meter](../lc-inductance-meter/README.md) |
+| `lc-inductance-meter/lc_inductance_meter.ino` | ATmega328P-specific Arduino sketch | [LC meter](../lc-inductance-meter/README.md) |
+| `lc-inductance-meter/schematic.svg` | 16:9 connection diagram | [LC meter](../lc-inductance-meter/README.md) |
+| `lc-inductance-meter/build-guide.txt` | Plain-text wiring and assembly guide | [LC meter](../lc-inductance-meter/README.md) |
 | `ROADMAP.md` | Original 7-step build log (historical) | §3 below |
 | `.gitignore` | Ignores `__pycache__`, `*.csv` (keeps `sample*.csv`), `*.log` | §3 below |
 | `01-docs/00-pic-family-overview.md` | PIC families, blocks, pins, terms | [learning-guides](modules/learning-guides.md) |
@@ -48,7 +55,7 @@
 | `06-projects/temp_logger_16f877a.c` | Capstone: ADC+Timer0+UART CSV | [components/temp-logger](components/temp-logger-16f877a.md) |
 | `06-projects/analyze_log.py` | CSV stats + ASCII chart | [components/analyze-log](components/analyze-log.md) |
 | `06-projects/quiz.md` | 12-question final quiz + answers | [capstone-system](modules/capstone-system.md) |
-| `tests/test_baud_calc.py` etc. (4) | 26 automated checks | [test-cases](testing/test-cases.md) |
+| `tests/test_baud_calc.py` etc. (4) | 28 automated cases | [test-cases](testing/test-cases.md) |
 | `tests/helpers.py` | `load_module` + `run_cli` | §3 below |
 | `tests/data/sample_temp.csv` | Canonical wrapped-format sample | §3 below |
 | `scripts/check_docs.py` | Link/source verifier | §3 below |
@@ -63,6 +70,20 @@ limits, doc index. **Exports:** none. **Dependencies:** none (links verified by
 **Failure:** stale commands mislead → fixed by running commands in [TESTING](TESTING.md).
 **Config:** none. **Modification risks:** keep command snippets runnable; keep
 links relative. **Related:** all of `docs/`.
+
+**Directory:** `electronics-fundamentals/` · **Path:** `PIC-MCU-Programming/electronics-fundamentals/`
+**Purpose:** standalone Markdown lessons extracted and cleaned from the supplied
+educational material (passives through digital logic, memory, 8051, and review).
+**Index:** [electronics-fundamentals/README.md](../electronics-fundamentals/README.md).
+**Scope:** theory only; no firmware, hardware validation, or device-specific
+values are implied. Exact-part behavior belongs to the manufacturer's datasheet.
+
+**Directory:** `lc-inductance-meter/` · **Path:** `PIC-MCU-Programming/lc-inductance-meter/`
+**Purpose:** separate low-voltage Arduino/LM393 inductance-meter prototype.
+**Contents:** README, ATmega328P sketch, 16:9 SVG diagram, and plain-text build
+instructions. **Status:** educational, not bench-validated; the README records
+input-limit, timing-resolution, and calibration caveats. Not part of the PIC
+firmware stages and not a full LCR meter.
 
 **File:** `ROADMAP.md` · **Path:** `PIC-MCU-Programming/ROADMAP.md`
 **Purpose:** historical log of the original 7 build steps. **Responsibilities:**
