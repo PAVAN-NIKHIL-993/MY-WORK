@@ -1,0 +1,12 @@
+# Module: learning-guides (`01-docs/`, supplemental theory, and stage READMEs)
+
+- **Purpose:** the human knowledge layer — concepts, setup, wiring, math, exercises, and troubleshooting — that makes firmware files learnable in order, plus a standalone cross-topic electronics theory track.
+- **Location:** [`01-docs/`](../../01-docs/00-pic-family-overview.md) (3 PIC guides) + [`electronics-fundamentals/`](../../electronics-fundamentals/README.md) (6 theory lessons) + 5 stage READMEs (`02/03/04/05/06`) + [`quiz`](../../06-projects/quiz.md).
+- **Responsibilities:** family/chip selection; MPLAB X + XC8 + PICkit setup; minimum circuit + LED/button/UART wiring; per-stage concepts (TRIS/LAT, ISR rules, baud math, pull-ups, WDT); electronics foundations (passives, switching devices, analog/digital logic, memory, classic 8051); exercises (beginner → stretch); symptom tables.
+- **Public interface:** Markdown reading order 01 → 02 → … → 06 → quiz for the PIC path; the supplemental theory sequence is independently indexed by its README. No code interface.
+- **Dependencies:** none (refer to firmware/tools by relative path; links verified by `check_docs.py`). **Consumers:** learners; troubleshooting flows; this engineering docs system (which assumes, not repeats, guide content).
+- **Internal architecture:** PIC guides teach *why/how*; stage READMEs index *what* (file tables) + *try it* (exercises) + *fix it* (symptom rows). The supplemental theory track is organized by concept and does not claim to be a PIC-specific firmware stage.
+- **Data/state/config:** none. **Error handling:** n/a (prose) — link accuracy is checked by `check_docs.py`; hardware/device-specific claims must be checked against the actual component datasheets.
+- **Performance/security:** n/a. **Modification risks:** LOW-MEDIUM — prose rots when code changes: any pin/flag/format change must update the touching guide + stage README in the same change ([DEVELOPMENT](../DEVELOPMENT.md) rule 5).
+- **Extension points:** new PIC guides slot into `01-docs/`; new cross-topic lessons belong in `electronics-fundamentals/` and its index.
+- **Implementation:** [00-overview](../../01-docs/00-pic-family-overview.md) · [01-toolchain](../../01-docs/01-toolchain-setup.md) · [02-wiring](../../01-docs/02-wiring-and-power-basics.md) · [electronics fundamentals](../../electronics-fundamentals/README.md) · stage READMEs (linked from each [module](firmware-basics.md)).

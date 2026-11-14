@@ -1,0 +1,8 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+# Captured data (keep the repo clean; your logs stay local)
+*.csv
+!sample*.csv
+*.log
