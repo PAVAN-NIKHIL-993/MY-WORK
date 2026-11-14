@@ -207,6 +207,16 @@ For the fixed address the original request asked for, set `kUseStaticIp = true`;
 
 ### 2. Verify the core logic without hardware
 
+`make core` needs only a C++17 compiler. The dashboard test and the simulator additionally need
+Node.js and two packages, which are **not vendored**:
+
+```
+npm install --no-save jsdom ws
+```
+
+If they are absent the tests say so and exit rather than failing obscurely. The JS tooling is
+development-only: nothing in it ships to the device.
+
 The measurement maths lives in `scope_core.cpp`, which has no Arduino dependencies, so it builds
 and tests on a laptop:
 

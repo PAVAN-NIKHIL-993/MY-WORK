@@ -18,9 +18,33 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { WebSocketServer } = require(
-  path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../../a11y-workbench/node_modules/ws")
-);
+
+// Same resolution strategy as test/test_dashboard.mjs: prefer a normal require()
+// so an npm-installed copy works, fall back to the sibling project, and explain
+// what to install if neither is present.
+function loadWs() {
+  try {
+    return require("ws");
+  } catch {
+    /* fall through */
+  }
+  for (const url of [
+    new URL("../../a11y-workbench/node_modules/ws", import.meta.url),
+    new URL("../node_modules/ws", import.meta.url),
+  ]) {
+    try {
+      return require(fileURLToPath(url));
+    } catch {
+      /* try next */
+    }
+  }
+  console.error(
+    "ws not found. The simulator needs it:\n  npm install --no-save ws"
+  );
+  process.exit(1);
+}
+
+const { WebSocketServer } = loadWs();
 
 const args = process.argv.slice(2);
 const portArg = args.indexOf("--port");

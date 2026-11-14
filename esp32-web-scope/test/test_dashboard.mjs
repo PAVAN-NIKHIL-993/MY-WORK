@@ -18,12 +18,39 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-// Reuse jsdom from the sibling project rather than adding a dependency.
-const jsdomPath = path.resolve(
-  fileURLToPath(new URL(".", import.meta.url)),
-  "../../a11y-workbench/node_modules/jsdom"
-);
-const { JSDOM } = require(jsdomPath);
+
+// jsdom is the one external dependency of this repo's tests, and it is not
+// vendored. Resolution order:
+//   1. a normal require(), so an npm-installed copy anywhere up the tree works;
+//   2. the sibling a11y-workbench project, which is how it is installed here.
+// If neither works the test says exactly what to do rather than throwing a
+// bare MODULE_NOT_FOUND from a hardcoded path.
+function loadJsdom() {
+  try {
+    return require("jsdom");
+  } catch {
+    /* fall through */
+  }
+  const candidates = [
+    new URL("../../a11y-workbench/node_modules/jsdom", import.meta.url),
+    new URL("../node_modules/jsdom", import.meta.url),
+  ];
+  for (const url of candidates) {
+    try {
+      return require(fileURLToPath(url));
+    } catch {
+      /* try next */
+    }
+  }
+  console.error(
+    "jsdom not found. The dashboard test needs it:\n" +
+      "  npm install --no-save jsdom\n" +
+      "or run it from a tree that has the sibling a11y-workbench project installed."
+  );
+  process.exit(1);
+}
+
+const { JSDOM } = loadJsdom();
 
 let failures = 0;
 let checks = 0;
