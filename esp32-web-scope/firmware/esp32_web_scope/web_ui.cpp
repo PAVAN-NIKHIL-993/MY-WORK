@@ -1,0 +1,797 @@
+// ---------------------------------------------------------------------------
+// web_ui.cpp - the dashboard HTML, stored in flash.
+//
+// Generated from test/dashboard_preview.html; edit the page, not this file.
+// It is a raw string literal so no escaping is needed and the page stays
+// byte-for-byte what a browser would see.
+//
+// test/test_embedded_ui.cpp compiles this file on the host and checks that the
+// page survived embedding, so a broken literal cannot reach the device.
+// ---------------------------------------------------------------------------
+#include "web_ui.h"
+
+const char kIndexHtml[] PROGMEM = R"HTMLPAGE(<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 Web Scope</title>
+<style>
+:root{
+  --bg:#08090d; --panel:#101219; --panel2:#171a24; --line:#252a38;
+  --fg:#dfe4f2; --dim:#7d87a0; --accent:#22d3ee; --good:#34d399;
+  --warn:#fbbf24; --bad:#f87171; --trace:#22d3ee; --grid:#1b2030;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--bg);color:var(--fg);height:100vh;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+header{
+  display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;flex:none;
+  background:var(--panel);border-bottom:1px solid var(--line);
+}
+.logo{font-weight:700;color:var(--accent);letter-spacing:.06em}
+.badge{
+  padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.08em;
+  border:1px solid;
+}
+.badge.run{color:var(--good);border-color:var(--good);background:rgba(52,211,153,.1)}
+.badge.stop{color:var(--bad);border-color:var(--bad);background:rgba(248,113,113,.1)}
+.badge.single{color:var(--warn);border-color:var(--warn);background:rgba(251,191,36,.1)}
+.pill{
+  padding:2px 8px;border:1px solid var(--line);border-radius:3px;
+  background:var(--panel2);font-size:11px;color:var(--dim);white-space:nowrap;
+}
+.pill b{color:var(--accent)}
+.spacer{flex:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+
+main{flex:1;display:flex;min-height:0}
+.scope{flex:1;display:flex;flex-direction:column;min-width:0;padding:8px;gap:8px}
+.wrap{
+  flex:1;position:relative;background:#05060a;border:1px solid var(--line);
+  border-radius:6px;overflow:hidden;min-height:0;
+}
+canvas{display:block;width:100%;height:100%}
+.hint{
+  position:absolute;left:10px;bottom:8px;font-size:10px;color:var(--dim);
+  pointer-events:none;letter-spacing:.04em;
+}
+.nodata{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:6px;color:var(--dim);text-align:center;padding:20px;
+}
+.nodata.show{display:flex}
+.nodata strong{color:var(--warn);font-size:14px}
+
+.readouts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+  gap:6px;flex:none;
+}
+.ro{
+  background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  padding:6px 8px;min-width:0;
+}
+.ro .k{font-size:10px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.ro .v{font-size:15px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro.hi .v{color:var(--accent)}
+
+aside{
+  width:300px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;padding-bottom:16px;
+}
+aside::-webkit-scrollbar{width:6px}
+aside::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+section{padding:10px 12px;border-bottom:1px solid var(--line)}
+section h3{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:9px;font-weight:700;
+}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.row label{font-size:11px;color:var(--dim);width:72px;flex:none;text-align:right}
+.row output{
+  font-size:11px;color:var(--accent);width:62px;flex:none;text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;
+  background:var(--line);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--bg);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;background:var(--accent);
+  border:2px solid var(--bg);cursor:pointer;
+}
+.btns{display:flex;gap:5px;flex-wrap:wrap}
+button{
+  flex:1;min-width:0;padding:7px 6px;font:inherit;font-size:11px;font-weight:600;
+  color:var(--fg);background:var(--panel2);border:1px solid var(--line);
+  border-radius:4px;cursor:pointer;white-space:nowrap;
+}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.on{background:rgba(34,211,238,.14);border-color:var(--accent);color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.tgl{position:relative;width:38px;height:20px;flex:none;cursor:pointer}
+.tgl input{opacity:0;width:0;height:0}
+.tgl span{
+  position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;transition:.15s;
+}
+.tgl span::after{
+  content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;
+  background:var(--dim);border-radius:50%;transition:.15s;
+}
+.tgl input:checked + span{background:rgba(34,211,238,.2);border-color:var(--accent)}
+.tgl input:checked + span::after{transform:translateX(18px);background:var(--accent)}
+.kbd{
+  display:inline-block;padding:1px 5px;border:1px solid var(--line);border-radius:3px;
+  background:var(--panel2);font-size:10px;color:var(--dim);
+}
+footer{
+  flex:none;display:flex;gap:14px;align-items:center;padding:0 12px;height:26px;
+  background:var(--panel);border-top:1px solid var(--line);font-size:10px;color:var(--dim);
+}
+@media (max-width:820px){
+  main{flex-direction:column}
+  aside{width:auto;max-height:44vh;border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">ESP32 WEB SCOPE</span>
+  <span id="badge" class="badge run">RUN</span>
+  <span class="pill">Mode <b id="pmode">PCNT</b></span>
+  <span class="pill">Freq <b id="pfreq">---</b></span>
+  <span class="pill">Duty <b id="pduty">---</b></span>
+  <span class="pill">Rate <b id="pfps">0</b> fps</span>
+  <span class="spacer"></span>
+  <span class="dot" id="dot"></span>
+</header>
+
+<main>
+  <div class="scope">
+    <div class="wrap">
+      <canvas id="cv"></canvas>
+      <div class="hint" id="hint">reconstructed pulse train from measured frequency and duty</div>
+      <div class="nodata" id="nodata">
+        <strong>No signal detected</strong>
+        <span>Check the probe, the ground, and that the signal is 0-3.3 V logic.</span>
+      </div>
+    </div>
+    <div class="readouts">
+      <div class="ro hi"><div class="k">Frequency</div><div class="v" id="rFreq">---</div></div>
+      <div class="ro"><div class="k">Period</div><div class="v" id="rPeriod">---</div></div>
+      <div class="ro"><div class="k">High</div><div class="v" id="rHigh">---</div></div>
+      <div class="ro"><div class="k">Low</div><div class="v" id="rLow">---</div></div>
+      <div class="ro"><div class="k">Duty</div><div class="v" id="rDuty">---</div></div>
+      <div class="ro"><div class="k">Edges</div><div class="v" id="rEdges">---</div></div>
+    </div>
+  </div>
+
+  <aside>
+    <section>
+      <h3>Run</h3>
+      <div class="btns">
+        <button id="bRun" class="on">Run</button>
+        <button id="bStop">Stop</button>
+        <button id="bSingle">Single</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Method</h3>
+      <div class="btns">
+        <button id="bPcnt" class="on">PCNT</button>
+        <button id="bRmt">RMT</button>
+        <button id="bCap">Capture</button>
+      </div>
+      <div style="margin-top:7px;font-size:10px;color:var(--dim);line-height:1.5">
+        PCNT = gated count (best frequency accuracy). RMT = pulse widths (best duty).
+        Capture = edge timestamps.
+      </div>
+    </section>
+
+    <section>
+      <h3>Horizontal</h3>
+      <div class="row">
+        <label for="sXoff">X pos</label>
+        <input type="range" id="sXoff" min="-100" max="100" value="0">
+        <output id="oXoff">0%</output>
+      </div>
+      <div class="row">
+        <label for="sXzoom">X zoom</label>
+        <input type="range" id="sXzoom" min="10" max="200" value="10">
+        <output id="oXzoom">1.0x</output>
+      </div>
+      <div class="row">
+        <label for="sTB">Time/div</label>
+        <input type="range" id="sTB" min="0" max="13" value="5">
+        <output id="oTB">--</output>
+      </div>
+    </section>
+
+    <section>
+      <h3>Vertical</h3>
+      <div class="row">
+        <label for="sYoff">Y pos</label>
+        <input type="range" id="sYoff" min="0" max="100" value="50">
+        <output id="oYoff">50%</output>
+      </div>
+      <div class="row">
+        <label for="sYzoom">Y zoom</label>
+        <input type="range" id="sYzoom" min="10" max="100" value="10">
+        <output id="oYzoom">1.0x</output>
+      </div>
+      <div class="row">
+        <label for="sV">V/div</label>
+        <input type="range" id="sV" min="0" max="5" value="2">
+        <output id="oV">0.5 V</output>
+      </div>
+    </section>
+
+    <section>
+      <h3>Trigger</h3>
+      <div class="row">
+        <label for="sTrig">Level</label>
+        <input type="range" id="sTrig" min="0" max="3300" value="1650" step="10">
+        <output id="oTrig">1.65 V</output>
+      </div>
+      <div class="btns" style="margin-bottom:6px">
+        <button id="bRise" class="on">Rise</button>
+        <button id="bFall">Fall</button>
+      </div>
+      <div class="btns">
+        <button id="bAuto" class="on">Auto</button>
+        <button id="bNorm">Normal</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Display</h3>
+      <div class="row">
+        <label for="tBW">BW limit</label>
+        <input type="range" id="sBW" min="1" max="16" value="4" style="flex:1">
+        <label class="tgl"><input type="checkbox" id="tBW"><span></span></label>
+      </div>
+      <div class="row">
+        <label for="tCur">Cursors</label>
+        <div class="spacer"></div>
+        <label class="tgl"><input type="checkbox" id="tCur"><span></span></label>
+      </div>
+      <div class="row">
+        <label for="sC1">Cursor 1</label>
+        <input type="range" id="sC1" min="0" max="100" value="25">
+        <output id="oC1">25%</output>
+      </div>
+      <div class="row">
+        <label for="sC2">Cursor 2</label>
+        <input type="range" id="sC2" min="0" max="100" value="75">
+        <output id="oC2">75%</output>
+      </div>
+      <div class="row"><label>&Delta;t</label><div class="spacer"></div><output id="oDt" style="width:auto">---</output></div>
+      <div class="row"><label>1/&Delta;t</label><div class="spacer"></div><output id="oFd" style="width:auto">---</output></div>
+    </section>
+
+    <section>
+      <h3>Keys</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--dim)">
+        <span><span class="kbd">Space</span> run/stop</span>
+        <span><span class="kbd">S</span> single</span>
+        <span><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span> method</span>
+        <span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span> x zoom</span>
+        <span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span> y zoom</span>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <span>ESP32 Web Scope</span>
+  <span>&middot;</span>
+  <span id="fConn">connecting&hellip;</span>
+  <span>&middot;</span>
+  <span>Input 3.3 V max &mdash; 5 V needs a divider</span>
+  <span class="spacer" style="flex:1"></span>
+  <span id="fMethod">PCNT</span>
+</footer>
+
+<script>
+"use strict";
+
+// =====================================================================
+// The trace is RECONSTRUCTED, not sampled.
+//
+// The ESP32 cannot sample a 1 MHz waveform: adc1_get_raw() polls at ~100 kS/s
+// (50 kHz Nyquist) and the ADC's analog bandwidth is ~6-8 kHz. What the hardware
+// genuinely measures is frequency, period, duty and pulse widths. This page
+// draws an ideal pulse train from those measured numbers and says so in the
+// footer. It does not pretend to show the input waveform.
+// =====================================================================
+
+const V_PER_DIV = [0.1, 0.2, 0.5, 1.0, 1.5, 3.3];
+const TIMEBASES = [
+  {usPerDiv: 0.1,  label: "100 ns"},
+  {usPerDiv: 0.2,  label: "200 ns"},
+  {usPerDiv: 0.5,  label: "500 ns"},
+  {usPerDiv: 1,    label: "1 us"},
+  {usPerDiv: 2,    label: "2 us"},
+  {usPerDiv: 5,    label: "5 us"},
+  {usPerDiv: 10,   label: "10 us"},
+  {usPerDiv: 20,   label: "20 us"},
+  {usPerDiv: 50,   label: "50 us"},
+  {usPerDiv: 100,  label: "100 us"},
+  {usPerDiv: 200,  label: "200 us"},
+  {usPerDiv: 500,  label: "500 us"},
+  {usPerDiv: 1000, label: "1 ms"},
+  {usPerDiv: 2000, label: "2 ms"}
+];
+
+const state = {
+  running: true, method: 0, valid: false,
+  meas: null, st: null,
+  connected: false
+};
+
+const $ = id => document.getElementById(id);
+const cv = $("cv");
+const ctx = cv.getContext("2d");
+
+// ---------------------------------------------------------------- formatting
+// Mirrors scope::formatFrequency etc. so the browser and the firmware agree.
+function fmtFreq(mhz) {
+  if (!mhz || mhz <= 0) return "---";
+  const hz = mhz / 1000;
+  if (hz >= 1e6) return (hz / 1e6).toFixed(3) + " MHz";
+  if (hz >= 1e3) return (hz / 1e3).toFixed(3) + " kHz";
+  return hz.toFixed(3) + " Hz";
+}
+function fmtTime(ns) {
+  if (!ns || ns <= 0) return "---";
+  if (ns >= 1e6) return (ns / 1e6).toFixed(3) + " ms";
+  if (ns >= 1e3) return (ns / 1e3).toFixed(3) + " us";
+  return ns + " ns";
+}
+function fmtVolt(mv) {
+  if (mv == null) return "---";
+  return mv >= 1000 ? (mv / 1000).toFixed(3) + " V" : mv.toFixed(1) + " mV";
+}
+
+// Exposed so test/test_dashboard.mjs can assert that the browser formatters and
+// the firmware formatters (scope::formatFrequency etc.) agree. Without this the
+// two implementations could drift and the readouts would disagree between the
+// serial log and the page.
+window.fmtFreq = fmtFreq;
+window.fmtTime = fmtTime;
+window.fmtVolt = fmtVolt;
+window.wsUrl = wsUrl;
+
+// ---------------------------------------------------------------- websocket
+let ws = null;
+let wsRetry = 0;
+
+function wsUrl() {
+  // On the real device the page is served on port 80 and the WebSocket on 81.
+  // When the page is served from any other port (the simulator, or a dev proxy
+  // that exposes a single port) the WebSocket lives on that same port, so the
+  // demo works behind a proxy without a second open port.
+  const secure = location.protocol === "https:";
+  const scheme = secure ? "wss:" : "ws:";
+  const p = location.port;
+  if (p === "" || p === "80" || p === "443") return scheme + "//" + location.hostname + ":81/";
+  return scheme + "//" + location.host + "/";
+}
+
+function connect() {
+  const url = wsUrl();
+  $("fConn").textContent = "connecting to " + url;
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    wsRetry = 0;
+    state.connected = true;
+    $("dot").classList.add("on");
+    $("fConn").textContent = "connected";
+  };
+
+  ws.onclose = () => {
+    state.connected = false;
+    $("dot").classList.remove("on");
+    $("fConn").textContent = "disconnected - retrying";
+    // Exponential backoff capped at 5 s, so a router reboot does not leave the
+    // page permanently dead.
+    const wait = Math.min(5000, 500 * Math.pow(2, wsRetry++));
+    setTimeout(connect, wait);
+  };
+
+  ws.onerror = () => { /* handled by onclose */ };
+
+  ws.onmessage = ev => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch (e) { return; }
+    if (msg.cmd !== "data") return;
+
+    state.meas = msg.meas;
+    state.st = msg.state;
+    state.method = msg.method;
+    state.valid = !!msg.valid;
+    updateReadouts();
+    if (state.st) syncControls(state.st);
+  };
+}
+
+function send(cmd, extra) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify(Object.assign({ cmd: cmd }, extra || {})));
+}
+
+// ---------------------------------------------------------------- readouts
+let fpsCount = 0, fpsTimer = performance.now();
+
+function updateReadouts() {
+  const m = state.meas;
+  const valid = state.valid && m;
+
+  $("rFreq").textContent   = valid ? fmtFreq(m.freq_mhz) : "---";
+  $("rPeriod").textContent = valid ? fmtTime(m.period_ns) : "---";
+  $("rHigh").textContent   = valid ? fmtTime(m.high_ns) : "---";
+  $("rLow").textContent    = valid ? fmtTime(m.low_ns) : "---";
+  $("rDuty").textContent   = valid && m.duty_permille ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
+  $("rEdges").textContent  = valid ? m.edges : "---";
+
+  $("pfreq").textContent = valid ? fmtFreq(m.freq_mhz) : "---";
+  $("pduty").textContent = valid && m.duty_permille ? (m.duty_permille / 10).toFixed(1) + "%" : "---";
+  $("nodata").classList.toggle("show", !valid);
+
+  const names = ["PCNT", "RMT", "Capture"];
+  $("pmode").textContent = names[state.method] || "?";
+  $("fMethod").textContent = names[state.method] || "?";
+
+  fpsCount++;
+  const now = performance.now();
+  if (now - fpsTimer >= 1000) {
+    $("pfps").textContent = fpsCount;
+    fpsCount = 0;
+    fpsTimer = now;
+  }
+}
+
+// ---------------------------------------------------------------- controls
+const els = {
+  xoff: $("sXoff"), xzoom: $("sXzoom"), tb: $("sTB"),
+  yoff: $("sYoff"), yzoom: $("sYzoom"), v: $("sV"),
+  trig: $("sTrig"), bw: $("sBW"), c1: $("sC1"), c2: $("sC2")
+};
+
+function readControls() {
+  return {
+    xOffsetPct: +els.xoff.value,
+    xZoomX10: +els.xzoom.value,
+    tbIdx: +els.tb.value,
+    yOffsetPct: +els.yoff.value,
+    yZoomX10: +els.yzoom.value,
+    vIdx: +els.v.value,
+    trigMv: +els.trig.value,
+    bwSize: +els.bw.value,
+    c1: +els.c1.value,
+    c2: +els.c2.value,
+    bwOn: $("tBW").checked,
+    curOn: $("tCur").checked
+  };
+}
+
+function syncControls(st) {
+  // The device is the source of truth for shared state, so reflect it back into
+  // the sliders without bouncing a command back on every frame.
+  applyingRemote = true;
+  els.xoff.value = st.x_offset_pct;
+  els.xzoom.value = st.x_zoom_x10;
+  els.tb.value = st.timebase_idx;
+  els.yoff.value = st.y_offset_pct;
+  els.yzoom.value = st.y_zoom_x10;
+  els.v.value = st.v_per_div_idx;
+  els.trig.value = st.trigger_mv;
+  els.bw.value = st.bw_size;
+  els.c1.value = st.cursor1_pct;
+  els.c2.value = st.cursor2_pct;
+  $("tBW").checked = st.bw_limit;
+  $("tCur").checked = st.cursors;
+  applyingRemote = false;
+  refreshOutputs();
+}
+
+let applyingRemote = false;
+
+function refreshOutputs() {
+  $("oXoff").textContent = els.xoff.value + "%";
+  $("oXzoom").textContent = (els.xzoom.value / 10).toFixed(1) + "x";
+  $("oYoff").textContent = els.yoff.value + "%";
+  $("oYzoom").textContent = (els.yzoom.value / 10).toFixed(1) + "x";
+  $("oV").textContent = V_PER_DIV[+els.v.value].toFixed(1) + " V";
+  $("oTB").textContent = TIMEBASES[+els.tb.value].label;
+  $("oTrig").textContent = fmtVolt(+els.trig.value);
+  $("oC1").textContent = els.c1.value + "%";
+  $("oC2").textContent = els.c2.value + "%";
+
+  // Cursor deltas are computed in the browser from the measured period, so they
+  // update at display rate without a round trip.
+  const dt = cursorDelta();
+  $("oDt").textContent = dt ? fmtTime(dt) : "---";
+  $("oFd").textContent = dt ? fmtFreq(1e12 / dt) : "---";
+}
+
+function cursorDelta() {
+  if (!state.st || !state.st.cursors || !state.valid || !state.meas) return 0;
+  const span = TIMEBASES[state.st.timebase_idx].usPerDiv * 1000 * 10; // ns across 10 div
+  const frac = Math.abs(state.st.cursor2_pct - state.st.cursor1_pct) / 100;
+  return Math.round(span * frac * (state.st.x_zoom_x10 / 10));
+}
+
+function wireControls() {
+  const senders = [
+    [els.xoff, "setXOffset", v => ({ value: v })],
+    [els.xzoom, "setXZoom", v => ({ value: v })],
+    [els.tb,   "setTB",      v => ({ value: v })],
+    [els.yoff, "setYOffset", v => ({ value: v })],
+    [els.yzoom, "setYZoom",  v => ({ value: v })],
+    [els.v,    "setVScale",  v => ({ value: v })],
+    [els.trig, "setTrigger", v => ({ level_mv: v, edge: state.st ? state.st.trigger_edge : 1, mode: state.st ? state.st.trigger_mode : 0 })]
+  ];
+  for (const [el, cmd, mk] of senders) {
+    el.addEventListener("input", () => {
+      if (applyingRemote) return;
+      refreshOutputs();
+      render();
+      send(cmd, mk(+el.value));
+    });
+  }
+
+  els.bw.addEventListener("input", () => {
+    if (applyingRemote) return;
+    refreshOutputs();
+    send("setBWLimit", { enabled: $("tBW").checked, size: +els.bw.value });
+  });
+  $("tBW").addEventListener("change", () => {
+    if (applyingRemote) return;
+    send("setBWLimit", { enabled: $("tBW").checked, size: +els.bw.value });
+  });
+
+  const cursors = () => {
+    if (applyingRemote) return;
+    refreshOutputs(); render();
+    send("setCursor", { enabled: $("tCur").checked, c1: +els.c1.value, c2: +els.c2.value });
+  };
+  els.c1.addEventListener("input", cursors);
+  els.c2.addEventListener("input", cursors);
+  $("tCur").addEventListener("change", cursors);
+
+  $("bRun").addEventListener("click", () => send("run"));
+  $("bStop").addEventListener("click", () => send("stop"));
+  $("bSingle").addEventListener("click", () => send("single"));
+
+  const setMethod = m => {
+    send("setMethod", { value: m });
+    ["bPcnt", "bRmt", "bCap"].forEach((id, i) => $(id).classList.toggle("on", i === m));
+  };
+  $("bPcnt").addEventListener("click", () => setMethod(0));
+  $("bRmt").addEventListener("click", () => setMethod(1));
+  $("bCap").addEventListener("click", () => setMethod(2));
+
+  $("bRise").addEventListener("click", () => {
+    $("bRise").classList.add("on"); $("bFall").classList.remove("on");
+    send("setTrigger", { level_mv: +els.trig.value, edge: 1, mode: state.st ? state.st.trigger_mode : 0 });
+  });
+  $("bFall").addEventListener("click", () => {
+    $("bFall").classList.add("on"); $("bRise").classList.remove("on");
+    send("setTrigger", { level_mv: +els.trig.value, edge: -1, mode: state.st ? state.st.trigger_mode : 0 });
+  });
+  $("bAuto").addEventListener("click", () => {
+    $("bAuto").classList.add("on"); $("bNorm").classList.remove("on");
+    send("setTrigger", { level_mv: +els.trig.value, edge: state.st ? state.st.trigger_edge : 1, mode: 0 });
+  });
+  $("bNorm").addEventListener("click", () => {
+    $("bNorm").classList.add("on"); $("bAuto").classList.remove("on");
+    send("setTrigger", { level_mv: +els.trig.value, edge: state.st ? state.st.trigger_edge : 1, mode: 1 });
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT") return;
+    switch (e.key) {
+      case " ": e.preventDefault(); send(state.running ? "stop" : "run"); break;
+      case "s": case "S": send("single"); break;
+      case "1": setMethod(0); break;
+      case "2": setMethod(1); break;
+      case "3": setMethod(2); break;
+      case "ArrowRight": els.xzoom.value = Math.min(200, +els.xzoom.value + 5); refreshOutputs(); send("setXZoom", { value: +els.xzoom.value }); break;
+      case "ArrowLeft":  els.xzoom.value = Math.max(10,  +els.xzoom.value - 5); refreshOutputs(); send("setXZoom", { value: +els.xzoom.value }); break;
+      case "ArrowUp":    els.yzoom.value = Math.min(100, +els.yzoom.value + 5); refreshOutputs(); send("setYZoom", { value: +els.yzoom.value }); break;
+      case "ArrowDown":  els.yzoom.value = Math.max(10,  +els.yzoom.value - 5); refreshOutputs(); send("setYZoom", { value: +els.yzoom.value }); break;
+    }
+  });
+}
+
+// ---------------------------------------------------------------- rendering
+let dpr = 1;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  cv.width = Math.max(1, Math.round(r.width * dpr));
+  cv.height = Math.max(1, Math.round(r.height * dpr));
+  render();
+}
+
+function render() {
+  const w = cv.width, h = cv.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const c = readControls();
+  const vPerDiv = V_PER_DIV[c.vIdx];
+  const cols = 10, rows = 8;
+
+  // ---- graticule
+  ctx.strokeStyle = "#1b2030";
+  ctx.lineWidth = 1 * dpr;
+  ctx.beginPath();
+  for (let i = 1; i < cols; i++) {
+    const x = Math.round((w / cols) * i) + 0.5;
+    ctx.moveTo(x, 0); ctx.lineTo(x, h);
+  }
+  for (let j = 1; j < rows; j++) {
+    const y = Math.round((h / rows) * j) + 0.5;
+    ctx.moveTo(0, y); ctx.lineTo(w, y);
+  }
+  ctx.stroke();
+
+  // centre crosshair
+  ctx.strokeStyle = "#2b3450";
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+  ctx.stroke();
+
+  // ---- zero reference and scale labels
+  const zeroY = h / 2 + (c.yOffsetPct - 50) / 100 * h;
+  ctx.fillStyle = "#4d5878";
+  ctx.font = (10 * dpr) + "px ui-monospace,monospace";
+  ctx.textBaseline = "top";
+  ctx.fillText(vPerDiv.toFixed(2) + " V/div", 6 * dpr, 6 * dpr);
+  ctx.fillText(TIMEBASES[c.tbIdx].label + "/div", 6 * dpr, 20 * dpr);
+
+  // ground marker
+  ctx.strokeStyle = "#3a4460";
+  ctx.beginPath();
+  ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY);
+  ctx.stroke();
+  ctx.fillStyle = "#3a4460";
+  ctx.fillText("GND", w - 34 * dpr, zeroY + 2 * dpr);
+
+  // ---- trigger level
+  const trigV = c.trigMv / 1000;
+  const trigY = zeroY - (trigV / vPerDiv) * (h / rows);
+  if (trigY > 0 && trigY < h) {
+    ctx.strokeStyle = "rgba(248,113,113,.55)";
+    ctx.setLineDash([5 * dpr, 5 * dpr]);
+    ctx.beginPath();
+    ctx.moveTo(0, trigY); ctx.lineTo(w, trigY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(248,113,113,.8)";
+    ctx.fillText(fmtVolt(c.trigMv), 6 * dpr, trigY - 12 * dpr);
+  }
+
+  // ---- cursors
+  if (c.curOn) {
+    [c.c1, c.c2].forEach((pct, i) => {
+      const x = (pct / 100) * w;
+      ctx.strokeStyle = i === 0 ? "rgba(251,191,36,.8)" : "rgba(52,211,153,.8)";
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x, h);
+      ctx.stroke();
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fillText("C" + (i + 1), x + 4 * dpr, 4 * dpr);
+    });
+  }
+
+  // ---- the trace
+  if (!state.valid || !state.meas) {
+    return; // the .nodata overlay explains why
+  }
+
+  const m = state.meas;
+  const periodNs = m.period_ns;
+  const highNs = m.high_ns || periodNs * 0.5;
+
+  // Time across the screen = 10 divisions, scaled by X zoom.
+  const spanNs = TIMEBASES[c.tbIdx].usPerDiv * 1000 * 10 / (c.xZoomX10 / 10);
+
+  // Amplitude mapping. The input is logic; Vpp is 3.3 V by convention for a
+  // logic-high signal, and the vertical gain comes from V/div.
+  const vTop = zeroY - (3.3 / vPerDiv) * (h / rows) * (c.yZoomX10 / 10);
+  const vBot = zeroY;
+
+  const xStart = w * 0.5 - (w * (c.xOffsetPct / 100));
+  const nsToPx = w / spanNs;
+
+  ctx.strokeStyle = "#22d3ee";
+  ctx.lineWidth = 2 * dpr;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  // Draw as a sequence of edges: exact vertical transitions and flat tops, which
+  // is what a reconstruction should look like. Sampling this into pixels would
+  // just alias when the period is only a few pixels wide.
+  let t = -((xStart) / nsToPx);   // ns at x = 0
+  let first = true;
+  const maxSegments = 4000;
+  let segments = 0;
+
+  // Find the phase where the first rising edge lands at or after x = 0.
+  const period = periodNs;
+  const startPhase = ((-t) % period + period) % period;
+  t += startPhase;
+
+  let level = 1; // assume we start mid-high; corrected below by duty
+  let nextEdge = t;
+  let isHigh = startPhase < highNs;
+
+  ctx.moveTo(first ? 0 : 0, isHigh ? vTop : vBot);
+
+  while (nextEdge < spanNs && segments++ < maxSegments) {
+    const x = nextEdge * nsToPx;
+    if (x < 0) { nextEdge += (isHigh ? highNs : (period - highNs)); continue; }
+    ctx.lineTo(x + 0.5, isHigh ? vTop : vBot);
+    isHigh = !isHigh;
+    nextEdge += isHigh ? (period - highNs) : highNs;
+    ctx.lineTo(Math.min(nextEdge, spanNs) * nsToPx + 0.5, isHigh ? vTop : vBot);
+  }
+  ctx.stroke();
+
+  // ---- BW limit: a moving average over the *drawn* reconstruction.
+  // This is honest: it filters the picture, not a measurement. It visually
+  // demonstrates what a bandwidth limit does, and the readouts are untouched.
+  if (c.bwOn) {
+    ctx.strokeStyle = "rgba(251,191,36,.85)";
+    ctx.lineWidth = 2 * dpr;
+    ctx.beginPath();
+    const win = c.bwSize;
+    for (let px = 0; px <= w; px += Math.max(2, 2 * dpr)) {
+      // Average the ideal square over `win` pixels either side, in the time
+      // domain, which is exactly a boxcar low-pass on the drawn trace.
+      const centreNs = (px / nsToPx);
+      let acc = 0, n = 0;
+      for (let k = -win; k <= win; k++) {
+        const ns = centreNs + k * (spanNs / w);
+        const phase = ((ns % period) + period) % period;
+        acc += (phase < highNs) ? vTop : vBot;
+        n++;
+      }
+      const y = acc / n;
+      if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// ---------------------------------------------------------------- boot
+window.addEventListener("resize", resize);
+window.addEventListener("load", () => {
+  resize();
+  refreshOutputs();
+  wireControls();
+  connect();
+  // Redraw at animation rate so slider drags feel immediate even at 20 fps of
+  // data. The canvas is cheap: one polyline plus the grid.
+  (function frame() { render(); requestAnimationFrame(frame); })();
+});
+</script>
+</body>
+</html>
+)HTMLPAGE";
