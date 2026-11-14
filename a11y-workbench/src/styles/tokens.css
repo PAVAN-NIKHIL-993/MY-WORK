@@ -1,0 +1,175 @@
+/*
+ * Design tokens.
+ *
+ * Every colour pair used for text was checked with the app's own contrast
+ * checker (see docs/ACCESSIBILITY.md for the recorded ratios). Tokens are the
+ * only place colour, spacing, radius, shadow and type values are defined:
+ * components use `var(--…)` exclusively so light/dark themes stay in sync.
+ */
+
+:root {
+  /* ---- Type ---- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem; /* 11px — uppercase eyebrows only */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.875rem; /* 14px — app default */
+  --text-md: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.75rem; /* 28px */
+  --text-3xl: 2.125rem; /* 34px */
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---- Space (4px scale) ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ---- Radius ---- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+
+  /* ---- Layout ---- */
+  --sidebar-width: 264px;
+  --content-max: 1240px;
+  --touch-target: 44px;
+  --border-width: 1px;
+
+  /* ---- Motion ---- */
+  --transition-fast: 110ms ease;
+  --transition-base: 170ms ease;
+}
+
+/* ---------- Light theme ---------- */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-canvas: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-subtle: #f0f2f5;
+  --bg-inset: #e9ecf1;
+  --bg-hover: #eef1f5;
+  --bg-selected: #e7effb;
+
+  --border-strong: #6f7986;
+  --border-default: #d7dce4;
+  --border-subtle: #e5e8ee;
+  /* 3:1 against --bg-surface — WCAG 1.4.11 requires this for the boundary of
+     form controls and other interactive components. Decorative dividers use
+     --border-default/--border-subtle and are exempt. */
+  --border-control: #828c99;
+
+  --text-primary: #16191f; /* 15.4:1 on --bg-surface */
+  --text-secondary: #4a5260; /* 8.1:1 on --bg-surface */
+  --text-muted: #646d7c; /* 5.9:1 on --bg-surface */
+  --text-inverse: #ffffff;
+  /* Backdrop behind dialogs and the mobile menu. A dedicated token so overlays
+     do not hard-code a colour and stay consistent between themes. */
+  --scrim: rgba(11, 16, 23, 0.62);
+
+  --accent: #1c4b8f; /* 7.4:1 on white */
+  --accent-hover: #163c74;
+  --accent-active: #102c55;
+  --accent-soft: #e8effa;
+  --accent-border: #b6c9e6;
+  --focus-ring: #1c4b8f;
+
+  --critical-fg: #8f1d1d;
+  --critical-bg: #fdecec;
+  --critical-border: #f0c2c2;
+  --serious-fg: #8a4207;
+  --serious-bg: #fdf2e4;
+  --serious-border: #f2d3ac;
+  --moderate-fg: #6a4c05;
+  --moderate-bg: #fbf6e3;
+  --moderate-border: #e8dbaf;
+  --minor-fg: #3f4a5c;
+  --minor-bg: #eef1f5;
+  --minor-border: #d8dee7;
+
+  --success-fg: #16603a;
+  --success-bg: #e9f6ef;
+  --success-border: #bde2cd;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.14);
+  --shadow-overlay: 0 24px 64px rgba(16, 24, 40, 0.24);
+}
+
+/* ---------- Dark theme ---------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-canvas: #0e1116;
+  --bg-surface: #161a21;
+  --bg-surface-raised: #1c212a;
+  --bg-subtle: #1f242d;
+  --bg-inset: #262c37;
+  --bg-hover: #232935;
+  --bg-selected: #1d3049;
+
+  --border-strong: #6b7788;
+  --border-default: #2c333e;
+  --border-subtle: #242a33;
+  --border-control: #66717f;
+
+  --text-primary: #f0f2f5; /* 14.9:1 on --bg-surface */
+  --text-secondary: #b7bec9; /* 8.2:1 */
+  --text-muted: #939ba7; /* 5.8:1 */
+  --text-inverse: #10141a;
+  --scrim: rgba(4, 6, 10, 0.72);
+
+  --accent: #7fb0f5; /* 7.9:1 on --bg-surface */
+  --accent-hover: #9ac2f8;
+  --accent-active: #b2d0fa;
+  --accent-soft: #1b2a3f;
+  --accent-border: #2f4a6e;
+  --focus-ring: #9ac2f8;
+
+  --critical-fg: #ffb4b4;
+  --critical-bg: #34191a;
+  --critical-border: #572627;
+  --serious-fg: #f5c08a;
+  --serious-bg: #33240f;
+  --serious-border: #523a1c;
+  --moderate-fg: #e8d493;
+  --moderate-bg: #302a12;
+  --moderate-border: #4a4220;
+  --minor-fg: #c2cad6;
+  --minor-bg: #232935;
+  --minor-border: #333c49;
+
+  --success-fg: #8fdcb0;
+  --success-bg: #12291f;
+  --success-border: #1f4433;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.55);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.7);
+}

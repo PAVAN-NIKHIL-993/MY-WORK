@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+coverage/
+
+# Local environment overrides (never commit real values)
+.env
+.env.local
+.env.*.local
+
+# Editor / OS noise
+.DS_Store
+.idea/
+*.swp
+*.log
+
+# Vitest / Vite caches
+.vite/
+*.tsbuildinfo
