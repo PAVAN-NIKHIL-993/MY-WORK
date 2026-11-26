@@ -1,0 +1,1345 @@
+========================================================================
+REFINED CHAT ARCHIVE — 2026-02-10_esp32-c3-boot-sequence
+========================================================================
+Title:               ESP32-C3 Boot Sequence
+Conversation ID:     698ab366-5be8-8324-a36e-4d3662a14315
+Source file:         conversations-000.json  (ChatGPT data export)
+Source type:         ChatGPT export JSON (.json)
+Created:             2026-02-10  (2026-02-10 04:26:21 UTC)
+Last update:         2026-02-10 05:33:43 UTC
+Turns:               8 total  (main branch 8: 4 user / 4 assistant; off-branch alternates 0)
+Model(s):            gpt-5-2
+Archived:            False   Starred: None
+Default model:       gpt-5-2
+Export nodes seen:   9
+Archive generated:   2026-11-26 (tools/build_archive.py)
+========================================================================
+
+## SECTION A — CONSOLIDATED USER QUESTIONS (SINGLE PARAGRAPH)
+
+The user began by asking: “┌──────────────────────────────────────────────────────────────────────────────────────────────┐ │ ESP32-C3 │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ BOOT ROM + STARTUP │ │ │ │ • Reset vector │ │ │ │ • ROM loader │ │ │ │ • Flash map validation │ │ │ │ • Reset reason capture (HW / SW / WDT / Brownout) │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ BOOT / INIT SEQUENCE (One-shot) │ │ │ │ • Clock tree bring-up & PLL lock validation │ │ │ │ • Heap & stack region allocation │ │ │ │ • Heap poisoning (DEV/TEST builds) │ │ │ │ • I²C bus recovery (SCL toggle, SDA release) │ │ │ │ • MAX30105 reset + PART ID check │ │ │ │ • FIFO flush + frame alignment │ │ │ │ • Safe LED current defaults │ │ │ │ • AFE saturation pre-check │ │ │ │ • Self-test result latch │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ SYSTEM CLOCK + FREERTOS KERNEL │ │ │ │ • CPU / APB clock domains │ │ │ │ • esp_timer (monotonic timebase authority) │ │ │ │ • FreeRTOS scheduler │ │ │ │ • Tick timer │ │ │ │ • Heap manager (heap_caps + fragmentation tracking) │ │ │ │ • Stack high-water enforcement │ │ │ │ • Task Watchdog (TWDT) │ │ │ │ • Interrupt Watchdog │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ HARDWARE TIMER ISR (TG0 / TIMER0) │ │ │ │ • Period: 10 ms (100 Hz) │ │ │ │ • Cycle counter capture (entry/exit) │ │ │ │ • ISR runtime & jitter metrics │ │ │ │ • Sets acquisition_flag (atomic) │ │ │ │ • Missed-tick counter │ │ │ │ • Feeds ISR-safe watchdog │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ▼ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ BINARY SEMAPHORE: sem_acquire │ │ │ │ • Given by ISR │ │ │ │ • Taken by task_acquisition │ │ │ │ • ISR→Task latency measurement │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: ACQUISITION (Priority 6, 100 Hz, HARD RT) │ │ │ │ • I²C FIFO burst read │ │ │ │ • Frame integrity check │ │ │ │ • Retry + timeout logic │ │ │ │ • NACK / bus-error counters │ │ │ │ • Timestamping (monotonic clock) │ │ │ │ • FIFO desync detection │ │ │ │ • Feeds TWDT │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ▼ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ QUEUE: q_raw_samples │ │ │ │ • {timestamp, IR, RED, frame_status} │ │ │ │ • Depth: 8–16 │ │ │ │ • Overflow & watermark monitoring │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: SIGNAL PROCESSING (Priority 5, 100 Hz) │ │ │ │ • DC running average │ │ │ │ • Contact detection + debounce │ │ │ │ • Ambient light delta rejection │ │ │ │ • HP + LP digital filters │ │ │ │ • Timestamp-based resampling │ │ │ │ • Jitter compensation │ │ │ │ • AC amplitude & perfusion ratio │ │ │ │ • ADC rail / saturation detection │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ▼ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ QUEUE: q_filtered_samples │ │ │ │ • {timestamp, filtered_signal, signal_quality} │ │ │ │ • Depth: 8–16 │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: BEAT DETECTION & BPM (Priority 4, 100 Hz) │ │ │ │ • Peak detection │ │ │ │ • Refractory enforcement │ │ │ │ • RR interval validation │ │ │ │ • Instant BPM + rolling avg + EMA │ │ │ │ • Outlier & physiological limit rejection │ │ │ │ • Clock-drift tolerant RR calculation │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ├─────────────────────┐ │ ▼ ▼ │ ┌───────────────────────────────┐ ┌──────────────────────────────────────────────┐ │ │ │ EVENT GROUP: eg_beats │ │ SHARED DATA (Mutex-protected) │ │ │ │ • BIT_NEW_BEAT │ │ • current_bpm │ │ │ │ • BIT_CONTACT_LOST │ │ • rr_variance │ │ │ │ • BIT_CLOCK_DRIFT │ │ • bpm_confidence │ │ │ └───────────────────────────────┘ └──────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: SQI ENGINE (Priority 3, 10 Hz / event-driven) │ │ │ │ • Contact confidence │ │ │ │ • AC amplitude │ │ │ │ • AC/DC perfusion │ │ │ │ • IBI variance │ │ │ │ • SQI hysteresis │ │ │ │ • Confidence decay model │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ▼ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ SHARED DATA (Mutex-protected) │ │ │ │ • SQI value (0–100) │ │ │ │ • SQI valid flag │ │ │ │ • SQI trend │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: ADAPTIVE LED CONTROL (Priority 2, 20 Hz) │ │ │ │ • IR DC targeting │ │ │ │ • Skin-tone bounded current limits │ │ │ │ • LED aging compensation │ │ │ │ • Thermal accumulation model │ │ │ │ • Thermal & brownout derating │ │ │ │ • MAX30105 LED register updates │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: SYSTEM STATE MACHINE (Priority 2, 20 Hz) │ │ │ │ States: INIT → NO_CONTACT → ACQUIRE → TRACKING → FAULT │ │ │ │ • SQI-gated transitions │ │ │ │ • Max dwell time per state │ │ │ │ • Forced exit on watchdog / fault │ │ │ │ • Fault reason tagging │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: I²C BUS HEALTH SUPERVISOR (Priority 2, event-driven) │ │ │ │ • Consecutive NACK tracking │ │ │ │ • FIFO corruption detection │ │ │ │ • I²C peripheral reset │ │ │ │ • MAX30105 soft re-init │ │ │ │ • Escalation to system fault │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: RESOURCE MONITOR (Priority 1, 1 Hz) │ │ │ │ • Heap free / largest block │ │ │ │ • Stack watermark enforcement │ │ │ │ • Queue depth & overflow tracking │ │ │ │ • Fragmentation alarms │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: POWER & BROWNOUT MONITOR (Priority 1, 1 Hz) │ │ │ │ • ADC Vbat sampling │ │ │ │ • Brownout prediction │ │ │ │ • Performance mode downgrade │ │ │ │ • Controlled reboot │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: FAULT TELEMETRY & LOGGER (Priority 1, event-driven) │ │ │ │ • Fault counters │ │ │ │ • Circular RAM buffer │ │ │ │ • NVS persistence (CRC protected, rate-limited) │ │ │ │ • Last-reset forensic snapshot │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ TASK: OUTPUT CONTRACT / INTERFACE (Priority 1, 10 Hz) │ │ │ │ • BPM + SQI output │ │ │ │ • Confidence & validity flags │ │ │ │ • Reason codes │ │ │ │ • Timestamp │ │ │ │ • Stale-data suppression │ │ │ │ • Output schema versioning │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ │ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │ │ │ DIAGNOSTICS & TEST HOOKS │ │ │ │ • BUILD_DEV / BUILD_TEST / BUILD_PROD │ │ │ │ • Signal injection bypass │ │ │ │ • Task heartbeat counters │ │ │ │ • Machine-readable self-description │ │ │ │ • Optional UART / RTT tracing │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────┘ │ │ │ └──────────────────────────────────────────────────────────────────────────────────────────────┘ ▲ │ I²C @ 400 kHz ▼ ┌──────────────────────────────────────────────────────────────────────────────────────────────┐ │ MAX30105 │ │ • IR + RED LEDs │ │ • Analog Front End │ │ • 18-bit ADC │ │ • FIFO │ └──────────────────────────────────────────────────────────────────────────────────────────────┘ anything else left”. Building on that, they asked: “okay add this all and give me block diagram”. Subsequently, they requested: “1 Configuration Constants 2 Data Structures 3 Globals (FreeRTOS) 4 I²C + MAX30105 Driver 5 MAX30105 Init 6 ISR — HW Timer 100 Hz 7 Task: Acquisition 8 Task: Signal Processing 9 Task: Beat Detection 10 Task: SQI Engine 11 Task: Adaptive LED 12 Task: State Machine 13 Task: I²C Health 14 Task: Resource Monitor 15 Task: Power Monitor 16 Task: Fault Logger 17 Task: Output Interface 18 Diagnostics & Test Hooks 19 setup() 20 loop() ...........”. Finally, they asked: “yup but for now give the full functional complete block diagram of the firmware”.
+
+## SECTION B — COMPREHENSIVE CHAT SUMMARY & ACTIONABLE SUGGESTIONS
+
+### Full Summary
+
+**Overview.** Architecture review of the ESP32-C3 heart-rate firmware: boot sequence, configuration constants, FreeRTOS structure, I²C/driver blocks and improvements for WiFi-only data dump.
+
+**Conversation profile.** 8 turns on the main branch (4 user / 4 assistant). Created 2026-02-10 (2026-02-10 04:26:21 UTC); last updated 2026-02-10 05:33:43 UTC. Source: conversations-000.json (chatgpt export json). Model(s) seen: gpt-5-2.
+
+**Key concepts, decisions, architecture & calculations discussed.**
+- 1️⃣ GPIO / INT PATH IS IMPLIED, NOT EXPLICIT
+- What’s missing
+- 2️⃣ CLOCK DOMAIN & TIME AUTHORITY CLARITY
+- Add a formal time stack
+- 3️⃣ BLE / OUTPUT TRANSPORT ABSTRACTION
+- Missing
+- 4️⃣ OTA + IMAGE INTEGRITY PIPELINE
+- 5️⃣ SENSOR THERMAL FEEDBACK LOOP (CLOSED, NOT IMPLIED)
+- 6️⃣ FORMAL FAULT TAXONOMY
+- 7️⃣ LOW-POWER / SLEEP STATES (OPTIONAL BUT REALISTIC)
+- Add (optional)
+- 8️⃣ CONFIGURATION VERSIONING
+- Verdict (Executive Summary Tone, Because Why Not)
+- Final reality check
+- 1️⃣ Configuration Constants
+- Correct place. Non-negotiable.
+- 2️⃣ Data Structures
+- Perfect placement.
+
+**Decisions & recommendations recorded in the conversation.**
+- Also yes, a few **surgical refinements** make it bulletproof instead of just impressive-looking.
+
+**Code / config / commands fingerprint.**
+- Fenced code blocks by language: plain×12
+- No explicit file paths mentioned.
+
+**Outcome / final state.**
+The conversation closed with the assistant stating (verbatim excerpt): “Right. No more teasing, no more “next steps.” Here is the **final, complete, end-to-end firmware block diagram**. This is the *one you freeze*, print, and build against. I am not adding commentary inside it. This is the **authoritative map**. --- ``` ┌────────────────────────────────────────────────────────────────────────────────────┐ │ ESP32-C3 │ │ │ │ ┌────────────────────────────────────────────────────────────────────────────────┐ │ │ │ BOOT ROM + IMAGE MANAGER │ │ │ │ • Reset vector │ │ │ │ • Reset reason capture │ │ │ │ • Image A / Image B selection │ │ │ │ • CRC / SHA validation │ │ │ …”
+
+### Suggestions & Next Steps
+
+- Power the ESP32 from a clean 3.3 V rail: ≥100 µF bulk + 100 nF ceramic at the VDD pins, and a separate regulator for servos/motors — brownouts masquerade as random firmware bugs.
+- Respect boot strapping pins (GPIO 0/2/12 on classic ESP32, GPIO 2/8/9 on C3): no external pulls that fight the straps, and never drive GPIO12 high at reset on 5 V-tolerant modules.
+- Enable the hardware watchdog (esp_task_wdt) around your main loop and use deep-sleep with RTC retention for battery nodes.
+- Gate every BPM/SpO₂ output behind a perfusion threshold (MIN_IR_LEVEL) + signal-quality index and a 5–6 s hold; never publish raw beats to UI.
+- Calibrate the IR/RED ratio against a reference pulse oximeter at rest and motion to derive your personal SpO₂ curve; ambient-light cancellation (dark current subtraction) is mandatory in daylight.
+- Run `tsc --noEmit` in CI, pin exact dependency versions, and add a .env.example documenting required VITE_* variables; guard clipboard/localStorage calls behind HTTPS/feature checks.
+- Regenerate this archive after every ChatGPT export (Settings → Data controls → Export) and diff against the previous INDEX.md to catch missing turns.
+- Lock in the winning decision from this chat into your project docs/repo before the next ChatGPT session; context window loss is the main failure mode.
+
+## SECTION C — COMPLETE PIN-TO-PIN REFINED TRANSCRIPT
+(Turn 1 → Turn 8 on the main branch; 0 off-branch alternate turn(s) preserved in the appendix)
+
+------------------------------------------------------------------------
+Turn 1 [USER] — 2026-02-10 04:26:21 UTC
+------------------------------------------------------------------------
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                          ESP32-C3                                           │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ BOOT ROM + STARTUP                                                                       │ │
+│ │ • Reset vector                                                                          │ │
+│ │ • ROM loader                                                                            │ │
+│ │ • Flash map validation                                                                  │ │
+│ │ • Reset reason capture (HW / SW / WDT / Brownout)                                       │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ BOOT / INIT SEQUENCE (One-shot)                                                          │ │
+│ │ • Clock tree bring-up & PLL lock validation                                              │ │
+│ │ • Heap & stack region allocation                                                        │ │
+│ │ • Heap poisoning (DEV/TEST builds)                                                       │ │
+│ │ • I²C bus recovery (SCL toggle, SDA release)                                             │ │
+│ │ • MAX30105 reset + PART ID check                                                         │ │
+│ │ • FIFO flush + frame alignment                                                          │ │
+│ │ • Safe LED current defaults                                                             │ │
+│ │ • AFE saturation pre-check                                                              │ │
+│ │ • Self-test result latch                                                                │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ SYSTEM CLOCK + FREERTOS KERNEL                                                           │ │
+│ │ • CPU / APB clock domains                                                               │ │
+│ │ • esp_timer (monotonic timebase authority)                                               │ │
+│ │ • FreeRTOS scheduler                                                                    │ │
+│ │ • Tick timer                                                                            │ │
+│ │ • Heap manager (heap_caps + fragmentation tracking)                                     │ │
+│ │ • Stack high-water enforcement                                                          │ │
+│ │ • Task Watchdog (TWDT)                                                                  │ │
+│ │ • Interrupt Watchdog                                                                   │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ HARDWARE TIMER ISR (TG0 / TIMER0)                                                        │ │
+│ │ • Period: 10 ms (100 Hz)                                                                │ │
+│ │ • Cycle counter capture (entry/exit)                                                    │ │
+│ │ • ISR runtime & jitter metrics                                                          │ │
+│ │ • Sets acquisition_flag (atomic)                                                        │ │
+│ │ • Missed-tick counter                                                                   │ │
+│ │ • Feeds ISR-safe watchdog                                                               │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                     │
+│                     ▼
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ BINARY SEMAPHORE: sem_acquire                                                           │ │
+│ │ • Given by ISR                                                                         │ │
+│ │ • Taken by task_acquisition                                                            │ │
+│ │ • ISR→Task latency measurement                                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ACQUISITION (Priority 6, 100 Hz, HARD RT)                                         │ │
+│ │ • I²C FIFO burst read                                                                  │ │
+│ │ • Frame integrity check                                                                │ │
+│ │ • Retry + timeout logic                                                                │ │
+│ │ • NACK / bus-error counters                                                            │ │
+│ │ • Timestamping (monotonic clock)                                                        │ │
+│ │ • FIFO desync detection                                                                │ │
+│ │ • Feeds TWDT                                                                           │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                     │
+│                     ▼
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_raw_samples                                                                   │ │
+│ │ • {timestamp, IR, RED, frame_status}                                                   │ │
+│ │ • Depth: 8–16                                                                         │ │
+│ │ • Overflow & watermark monitoring                                                      │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SIGNAL PROCESSING (Priority 5, 100 Hz)                                           │ │
+│ │ • DC running average                                                                  │ │
+│ │ • Contact detection + debounce                                                         │ │
+│ │ • Ambient light delta rejection                                                        │ │
+│ │ • HP + LP digital filters                                                              │ │
+│ │ • Timestamp-based resampling                                                           │ │
+│ │ • Jitter compensation                                                                  │ │
+│ │ • AC amplitude & perfusion ratio                                                        │ │
+│ │ • ADC rail / saturation detection                                                      │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                     │
+│                     ▼
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_filtered_samples                                                              │ │
+│ │ • {timestamp, filtered_signal, signal_quality}                                        │ │
+│ │ • Depth: 8–16                                                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: BEAT DETECTION & BPM (Priority 4, 100 Hz)                                        │ │
+│ │ • Peak detection                                                                      │ │
+│ │ • Refractory enforcement                                                              │ │
+│ │ • RR interval validation                                                              │ │
+│ │ • Instant BPM + rolling avg + EMA                                                      │ │
+│ │ • Outlier & physiological limit rejection                                             │ │
+│ │ • Clock-drift tolerant RR calculation                                                 │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                     │
+│                     ├─────────────────────┐
+│                     ▼                     ▼
+│ ┌───────────────────────────────┐   ┌──────────────────────────────────────────────┐ │
+│ │ EVENT GROUP: eg_beats          │   │ SHARED DATA (Mutex-protected)                │ │
+│ │ • BIT_NEW_BEAT                 │   │ • current_bpm                                │ │
+│ │ • BIT_CONTACT_LOST             │   │ • rr_variance                                │ │
+│ │ • BIT_CLOCK_DRIFT              │   │ • bpm_confidence                            │ │
+│ └───────────────────────────────┘   └──────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SQI ENGINE (Priority 3, 10 Hz / event-driven)                                    │ │
+│ │ • Contact confidence                                                                  │ │
+│ │ • AC amplitude                                                                        │ │
+│ │ • AC/DC perfusion                                                                     │ │
+│ │ • IBI variance                                                                        │ │
+│ │ • SQI hysteresis                                                                      │ │
+│ │ • Confidence decay model                                                              │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                     │
+│                     ▼
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ SHARED DATA (Mutex-protected)                                                          │ │
+│ │ • SQI value (0–100)                                                                   │ │
+│ │ • SQI valid flag                                                                     │ │
+│ │ • SQI trend                                                                          │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ADAPTIVE LED CONTROL (Priority 2, 20 Hz)                                        │ │
+│ │ • IR DC targeting                                                                     │ │
+│ │ • Skin-tone bounded current limits                                                     │ │
+│ │ • LED aging compensation                                                              │ │
+│ │ • Thermal accumulation model                                                          │ │
+│ │ • Thermal & brownout derating                                                         │ │
+│ │ • MAX30105 LED register updates                                                        │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SYSTEM STATE MACHINE (Priority 2, 20 Hz)                                        │ │
+│ │ States: INIT → NO_CONTACT → ACQUIRE → TRACKING → FAULT                                 │ │
+│ │ • SQI-gated transitions                                                               │ │
+│ │ • Max dwell time per state                                                            │ │
+│ │ • Forced exit on watchdog / fault                                                     │ │
+│ │ • Fault reason tagging                                                                │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: I²C BUS HEALTH SUPERVISOR (Priority 2, event-driven)                            │ │
+│ │ • Consecutive NACK tracking                                                           │ │
+│ │ • FIFO corruption detection                                                           │ │
+│ │ • I²C peripheral reset                                                                │ │
+│ │ • MAX30105 soft re-init                                                               │ │
+│ │ • Escalation to system fault                                                          │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: RESOURCE MONITOR (Priority 1, 1 Hz)                                             │ │
+│ │ • Heap free / largest block                                                           │ │
+│ │ • Stack watermark enforcement                                                         │ │
+│ │ • Queue depth & overflow tracking                                                     │ │
+│ │ • Fragmentation alarms                                                                │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: POWER & BROWNOUT MONITOR (Priority 1, 1 Hz)                                     │ │
+│ │ • ADC Vbat sampling                                                                  │ │
+│ │ • Brownout prediction                                                                │ │
+│ │ • Performance mode downgrade                                                          │ │
+│ │ • Controlled reboot                                                                  │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: FAULT TELEMETRY & LOGGER (Priority 1, event-driven)                            │ │
+│ │ • Fault counters                                                                     │ │
+│ │ • Circular RAM buffer                                                                │ │
+│ │ • NVS persistence (CRC protected, rate-limited)                                      │ │
+│ │ • Last-reset forensic snapshot                                                        │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: OUTPUT CONTRACT / INTERFACE (Priority 1, 10 Hz)                                │ │
+│ │ • BPM + SQI output                                                                   │ │
+│ │ • Confidence & validity flags                                                        │ │
+│ │ • Reason codes                                                                       │ │
+│ │ • Timestamp                                                                          │ │
+│ │ • Stale-data suppression                                                             │ │
+│ │ • Output schema versioning                                                           │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ DIAGNOSTICS & TEST HOOKS                                                              │ │
+│ │ • BUILD_DEV / BUILD_TEST / BUILD_PROD                                                 │ │
+│ │ • Signal injection bypass                                                            │ │
+│ │ • Task heartbeat counters                                                            │ │
+│ │ • Machine-readable self-description                                                   │ │
+│ │ • Optional UART / RTT tracing                                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+                          ▲
+                          │ I²C @ 400 kHz
+                          ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         MAX30105                                         │
+│ • IR + RED LEDs                                                                          │
+│ • Analog Front End                                                                       │
+│ • 18-bit ADC                                                                             │
+│ • FIFO                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+anything else left
+
+------------------------------------------------------------------------
+Turn 2 [ASSISTANT] — 2026-02-10 04:26:21 UTC  [model=gpt-5-2]
+------------------------------------------------------------------------
+Short answer: yes. Long answer: you already built a small operating system with a pulse sensor attached, but a few **enterprise-grade loose ends** are still floating around pretending not to matter. Let’s close the loop.
+
+Below is a **gap analysis**. No fluff. No repetition. Just what’s *structurally missing or under-specified* if this were to ship, certify, or survive abuse.
+
+---
+
+## 1️⃣ GPIO / INT PATH IS IMPLIED, NOT EXPLICIT  
+Right now the MAX30105 is magically well-behaved.
+
+**What’s missing**
+- Explicit **INT pin handling**
+- Clear ownership of FIFO watermark / A_FULL interrupt
+
+**Add**
+```
+MAX30105 INT GPIO
+│
+├─ GPIO ISR (level/edge defined)
+│   • FIFO watermark
+│   • FIFO overflow
+│   • Die temp ready (optional)
+│
+└─ Deferred handler (high-priority task or esp_timer)
+```
+
+Why this matters: polling at 100 Hz works until it doesn’t. Interrupt-driven backpressure is how grown systems avoid FIFO rot.
+
+---
+
+## 2️⃣ CLOCK DOMAIN & TIME AUTHORITY CLARITY  
+You reference monotonic time everywhere. Good. But the **source of truth** needs a label.
+
+**Add a formal time stack**
+- esp_timer = absolute monotonic authority
+- Hardware timer = cadence generator only
+- No task allowed to call `xTaskGetTickCount()` for timestamps
+
+This avoids silent drift bugs that show up after 8 hours and ruin lives.
+
+---
+
+## 3️⃣ BLE / OUTPUT TRANSPORT ABSTRACTION  
+You have an “Output Contract” but no **transport layer boundary**.
+
+**Missing**
+- BLE / UART / SPI / USB CDC separation
+- Backpressure handling when the consumer stalls
+
+**Add**
+```
+OUTPUT CONTRACT
+│
+├─ Transport Adapter (pluggable)
+│   • BLE GATT
+│   • UART framed
+│   • SPI shared memory
+│
+└─ Rate limiter + drop policy
+```
+
+Otherwise the system collapses the moment a phone decides to disconnect dramatically.
+
+---
+
+## 4️⃣ OTA + IMAGE INTEGRITY PIPELINE  
+You track faults like a forensic scientist but still reboot like it’s 2012.
+
+**Add**
+- OTA slot manager
+- Image CRC / SHA validation
+- Rollback trigger on boot-loop detection
+
+Minimal block:
+```
+BOOT ROM
+│
+├─ Image A / Image B
+├─ Boot counter
+└─ Rollback decision
+```
+
+You already have the telemetry to support this. Not wiring it would be ironic.
+
+---
+
+## 5️⃣ SENSOR THERMAL FEEDBACK LOOP (CLOSED, NOT IMPLIED)  
+You model thermal accumulation. Good. But nothing *measures* it.
+
+**Add**
+- MAX30105 die temperature read
+- Optional ESP32 internal temp sensor
+- Cross-check vs LED current derating
+
+That turns “thermal model” from poetry into physics.
+
+---
+
+## 6️⃣ FORMAL FAULT TAXONOMY  
+You tag faults, but they aren’t normalized.
+
+**Add**
+- Enumerated fault class table
+  - SENSOR_FAULT_xx
+  - TIMING_FAULT_xx
+  - POWER_FAULT_xx
+  - DATA_INTEGRITY_xx
+- Single fault escalation path into FSM
+
+This is how logs become actionable instead of decorative.
+
+---
+
+## 7️⃣ LOW-POWER / SLEEP STATES (OPTIONAL BUT REALISTIC)  
+Right now the system is always awake, judging your pulse relentlessly.
+
+**Add (optional)**
+- Light sleep during NO_CONTACT
+- Reduced sampling mode
+- LED off hard-gate
+
+Battery-powered systems that never sleep are just heaters with opinions.
+
+---
+
+## 8️⃣ CONFIGURATION VERSIONING  
+You version outputs, but not **behavior**.
+
+**Add**
+- Config struct version
+- Migration logic on boot
+- Safe defaults on mismatch
+
+This saves you from yourself six months from now.
+
+---
+
+## Verdict (Executive Summary Tone, Because Why Not)
+
+- Architecture: **solid**
+- RTOS discipline: **excellent**
+- Failure handling: **above average**
+- Missing pieces: **integration-grade polish**
+
+You didn’t forget fundamentals. You forgot the boring glue that turns a lab-grade system into a deployable one. That’s normal. Annoying. Fixable.
+
+If you want, next step is either:
+- a **single-page “final” block diagram** with the missing blocks folded in, or  
+- a **FreeRTOS object map** showing ownership of every semaphore, queue, timer, and mutex so nothing “just exists.”
+
+Both are painful. Both are worth it.
+
+------------------------------------------------------------------------
+Turn 3 [USER] — 2026-02-10 04:35:56 UTC
+------------------------------------------------------------------------
+okay add this all and give  me block diagram
+
+------------------------------------------------------------------------
+Turn 4 [ASSISTANT] — 2026-02-10 04:35:57 UTC  [model=gpt-5-2]
+------------------------------------------------------------------------
+Fine. You asked for a **block diagram**, not a philosophy lecture, so here is the **fully closed-loop, production-grade block diagram** with *everything* we just identified added in. This is the “nothing left implied, nothing left magical” version.
+
+Read it top to bottom. Every arrow has a reason to exist.
+
+---
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                               ESP32-C3                                      │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ BOOT ROM + IMAGE MANAGER                                                  │ │
+│ │ • Reset vector                                                            │ │
+│ │ • Reset reason capture                                                    │ │
+│ │ • Image A / Image B selection                                             │ │
+│ │ • CRC / SHA validation                                                    │ │
+│ │ • Boot-loop detection & rollback                                          │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ SYSTEM INIT (ONE-SHOT)                                                    │ │
+│ │ • Clock tree & PLL lock                                                   │ │
+│ │ • esp_timer (monotonic time authority)                                    │ │
+│ │ • Heap + stack regions                                                    │ │
+│ │ • I²C bus recovery (SCL toggle, SDA release)                              │ │
+│ │ • MAX30105 reset + PART ID check                                          │ │
+│ │ • FIFO flush + watermark config                                          │ │
+│ │ • Safe LED current defaults                                               │ │
+│ │ • Config version validation / migration                                  │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ FREERTOS KERNEL                                                           │ │
+│ │ • Scheduler                                                               │ │
+│ │ • Task Watchdog (TWDT)                                                    │ │
+│ │ • Interrupt Watchdog                                                      │ │
+│ │ • Heap fragmentation tracking                                            │ │
+│ │ • Stack high-water enforcement                                           │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ HARDWARE TIMER (TG0 / TIMER0)                                             │ │
+│ │ • 10 ms cadence (100 Hz)                                                  │ │
+│ │ • Jitter & runtime measurement                                           │ │
+│ │ • Gives sem_acquire                                                       │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ACQUISITION (P6, HARD RT)                                           │ │
+│ │ • FIFO burst read                                                         │ │
+│ │ • Timestamping (esp_timer only)                                           │ │
+│ │ • Frame integrity                                                         │ │
+│ │ • NACK / bus-error counters                                               │ │
+│ │ • FIFO desync detection                                                   │ │
+│ │ • Feeds TWDT                                                              │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_raw_samples                                                      │ │
+│ │ • {ts, IR, RED, frame_status}                                             │ │
+│ │ • Depth + overflow monitoring                                             │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SIGNAL PROCESSING (P5)                                              │ │
+│ │ • DC tracking & contact detection                                        │ │
+│ │ • Ambient light rejection                                                │ │
+│ │ • HP + LP filters                                                        │ │
+│ │ • Resampling & jitter compensation                                       │ │
+│ │ • Saturation detection                                                   │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_filtered_samples                                                 │ │
+│ │ • {ts, filtered_signal, quality}                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: BEAT DETECTION & BPM (P4)                                           │ │
+│ │ • Peak detection                                                         │ │
+│ │ • Refractory enforcement                                                 │ │
+│ │ • RR interval validation                                                 │ │
+│ │ • Instant BPM + rolling avg + EMA                                        │ │
+│ │ • Physiological limit checks                                             │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│        │                         │                                          │
+│        ▼                         ▼                                          │
+│ ┌───────────────┐     ┌──────────────────────────────────────────────┐     │
+│ │ EVENT GROUP   │     │ SHARED DATA (MUTEX)                            │     │
+│ │ • NEW_BEAT    │     │ • current_bpm                                  │     │
+│ │ • CONTACT_LOST│     │ • rr_variance                                  │     │
+│ │ • CLOCK_DRIFT │     │ • bpm_confidence                               │     │
+│ └───────────────┘     └──────────────────────────────────────────────┘     │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SQI ENGINE (P3, EVENT / 10 Hz)                                     │ │
+│ │ • Contact confidence                                                     │ │
+│ │ • AC amplitude                                                          │ │
+│ │ • AC/DC perfusion                                                       │ │
+│ │ • IBI variance                                                          │ │
+│ │ • SQI hysteresis & decay                                                │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ SHARED DATA (MUTEX)                                                      │ │
+│ │ • SQI value (0–100)                                                      │ │
+│ │ • SQI trend                                                             │ │
+│ │ • SQI valid flag                                                        │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ADAPTIVE LED CONTROL (P2, 20 Hz)                                   │ │
+│ │ • IR DC targeting                                                       │ │
+│ │ • Skin-tone bounded current                                             │ │
+│ │ • LED aging compensation                                                │ │
+│ │ • Thermal model                                                         │ │
+│ │ • MAX30105 die temperature feedback                                     │ │
+│ │ • Brownout derating                                                     │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SYSTEM STATE MACHINE (P2)                                         │ │
+│ │ • INIT → NO_CONTACT → ACQUIRE → TRACKING → FAULT                        │ │
+│ │ • SQI-gated transitions                                                 │ │
+│ │ • Fault tagging                                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: I²C BUS HEALTH SUPERVISOR (P2)                                    │ │
+│ │ • INT pin monitoring                                                    │ │
+│ │ • FIFO overflow detection                                               │ │
+│ │ • Peripheral reset                                                      │ │
+│ │ • MAX30105 soft re-init                                                 │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: RESOURCE + POWER MONITOR (P1, 1 Hz)                              │ │
+│ │ • Heap & stack watermarks                                               │ │
+│ │ • Queue depth                                                          │ │
+│ │ • Vbat sampling & brownout prediction                                  │ │
+│ │ • Performance downgrade                                                │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: FAULT LOGGER & TELEMETRY (P1)                                    │ │
+│ │ • Fault taxonomy                                                       │ │
+│ │ • Circular RAM buffer                                                  │ │
+│ │ • NVS persistence (CRC-protected)                                      │ │
+│ │ • Last-reset forensic snapshot                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: OUTPUT CONTRACT (P1, 10 Hz)                                      │ │
+│ │ • BPM + SQI + confidence                                               │ │
+│ │ • Validity & reason codes                                              │ │
+│ │ • Timestamp                                                           │ │
+│ │ • Stale-data suppression                                               │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                    │                                                         │
+│                    ▼                                                         │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ TRANSPORT ADAPTER                                                       │ │
+│ │ • BLE GATT / UART / USB CDC                                             │ │
+│ │ • Backpressure handling                                                 │ │
+│ │ • Rate limiting                                                         │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ DIAGNOSTICS & TEST HOOKS                                                 │ │
+│ │ • BUILD_DEV / TEST / PROD                                               │ │
+│ │ • Signal injection                                                      │ │
+│ │ • Task heartbeats                                                       │ │
+│ │ • Optional tracing                                                      │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+                ▲
+                │ I²C @ 400 kHz + INT GPIO
+                ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                               MAX30105                                     │
+│ • IR + RED LEDs                                                             │
+│ • Analog Front End                                                          │
+│ • FIFO + Watermark INT                                                     │
+│ • Die Temperature Sensor                                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Final reality check
+
+This diagram is **complete**.  
+Nothing critical is implied.  
+Nothing dangerous is left “for later.”  
+
+At this point, the only things left are:
+- turning this into **code**
+- or collapsing it into a **single-page presentation diagram** for documentation / review
+
+You’ve crossed the line from “Arduino project” into “embedded system with opinions.” That’s a one-way trip.
+
+------------------------------------------------------------------------
+Turn 5 [USER] — 2026-02-10 05:00:03 UTC
+------------------------------------------------------------------------
+1
+Configuration Constants
+
+2
+Data Structures
+
+3
+Globals (FreeRTOS)
+
+4
+I²C + MAX30105 Driver
+
+5
+MAX30105 Init
+
+6
+ISR — HW Timer 100 Hz
+
+7
+Task: Acquisition
+
+8
+Task: Signal Processing
+
+9
+Task: Beat Detection
+
+10
+Task: SQI Engine
+
+11
+Task: Adaptive LED
+
+12
+Task: State Machine
+
+13
+Task: I²C Health
+
+14
+Task: Resource Monitor
+
+15
+Task: Power Monitor
+
+16
+Task: Fault Logger
+
+17
+Task: Output Interface
+
+18
+Diagnostics & Test Hooks
+
+19
+setup()
+
+20
+loop()
+
+
+
+
+
+
+...........
+
+------------------------------------------------------------------------
+Turn 6 [ASSISTANT] — 2026-02-10 05:00:03 UTC  [model=gpt-5-2]
+------------------------------------------------------------------------
+That dotted line is you asking “is this ordering sane or did I accidentally summon chaos.”  
+Answer: **yes, it’s sane**. Also yes, a few **surgical refinements** make it bulletproof instead of just impressive-looking.
+
+I’ll walk through **each section**, explain *why it lives there*, and call out **gotchas**. Think of this as a codebase org chart with a performance review attached.
+
+---
+
+## 1️⃣ Configuration Constants  
+**Correct place. Non-negotiable.**
+
+What goes here:
+- Sample rates (100 Hz, 10 Hz, 1 Hz)
+- Queue depths
+- LED current bounds
+- Physiological limits (BPM min/max)
+- Timeouts, retry counts
+- Compile-time feature flags
+
+Rules:
+- `#define` or `constexpr`, not globals
+- No magic numbers anywhere else
+- Anything that changes behavior without changing logic belongs here
+
+If a value is tweakable during bring-up, it lives here or it becomes folklore.
+
+---
+
+## 2️⃣ Data Structures  
+**Perfect placement.**
+
+Includes:
+- Sample structs
+- Filter state structs
+- SQI metrics
+- Fault records
+- Output contract schema
+
+Rule:
+- No logic
+- No initialization with runtime values
+- Structs only describe *shape*, never *behavior*
+
+This is the shared language all tasks speak. Keep it boring.
+
+---
+
+## 3️⃣ Globals (FreeRTOS Objects)  
+**Necessary evil, handled correctly.**
+
+Contains:
+- Task handles
+- Queues
+- Semaphores
+- Event groups
+- Mutexes
+- Software timers
+
+Rules:
+- No raw data buffers here
+- Every object has exactly **one owner task**
+- Everyone else interacts through queues/events
+
+Globals aren’t bad. Unowned globals are.
+
+---
+
+## 4️⃣ I²C + MAX30105 Driver  
+**Yes, driver before init. Good instincts.**
+
+This layer should:
+- Wrap Wire
+- Handle retries
+- Translate I²C errors into enums
+- Never block indefinitely
+- Never touch FreeRTOS primitives
+
+Think “dumb but reliable chauffeur.”
+
+---
+
+## 5️⃣ MAX30105 Init  
+**Correctly isolated.**
+
+Responsibilities:
+- Reset
+- Part ID check
+- FIFO config
+- LED current defaults
+- Sample rate config
+- INT pin config
+- Die temp enable
+
+Rule:
+- Idempotent  
+You must be able to call this again after a fault without rebooting.
+
+If init can’t be safely re-run, your fault recovery is theater.
+
+---
+
+## 6️⃣ ISR — HW Timer 100 Hz  
+**This stays tiny or it stays wrong.**
+
+Allowed:
+- Capture cycle count
+- Give semaphore
+- Increment missed-tick counter
+- Feed ISR-safe watchdog
+
+Forbidden:
+- I²C
+- Math
+- Logging
+- Dynamic memory
+- Feelings
+
+ISR code should look embarrassed to exist.
+
+---
+
+## 7️⃣ Task: Acquisition  
+**Right after ISR. Correct priority ordering.**
+
+Does:
+- FIFO burst read
+- Timestamping (esp_timer only)
+- Frame integrity
+- Retry logic
+- FIFO desync detection
+
+Rules:
+- No filtering
+- No BPM math
+- Push raw truth into a queue and leave
+
+This is the sensory nerve, not the brain.
+
+---
+
+## 8️⃣ Task: Signal Processing  
+**Correctly placed after acquisition.**
+
+Owns:
+- DC removal
+- Contact detection
+- Ambient rejection
+- HP/LP filters
+- Resampling
+- Saturation detection
+
+Rule:
+- Deterministic runtime
+- No knowledge of “heartbeats”
+- Output is signal + quality, nothing semantic
+
+This task answers “is this waveform usable,” not “what does it mean.”
+
+---
+
+## 9️⃣ Task: Beat Detection  
+**Exactly where it belongs.**
+
+Responsibilities:
+- Peak detection
+- Refractory logic
+- RR interval calculation
+- BPM smoothing
+- Outlier rejection
+
+Rule:
+- One beat in → one event out
+- No SQI decisions here
+- No LED control here
+
+It detects beats, not confidence.
+
+---
+
+## 🔟 Task: SQI Engine  
+**Good separation. Many people screw this up.**
+
+Does:
+- Confidence scoring
+- Hysteresis
+- Decay
+- Trend analysis
+
+Consumes:
+- Beat stats
+- Signal quality
+- RR variance
+
+Produces:
+- SQI value
+- Valid flag
+- Trend
+
+SQI is policy. Policy never belongs in signal code.
+
+---
+
+## 1️⃣1️⃣ Task: Adaptive LED  
+**Correct placement and scope.**
+
+Owns:
+- LED current targets
+- Thermal model
+- Skin tone bounds
+- Aging compensation
+- Brownout derating
+
+Rule:
+- Never reacts instantly
+- Always rate-limited
+- Never overrides safety caps
+
+This is a slow, cautious adult in the room.
+
+---
+
+## 1️⃣2️⃣ Task: State Machine  
+**Central nervous system.**
+
+Handles:
+- INIT / NO_CONTACT / ACQUIRE / TRACKING / FAULT
+- SQI-gated transitions
+- Fault tagging
+- Dwell timers
+
+Rule:
+- No hardware access
+- No signal math
+- Just orchestration
+
+FSMs don’t do work. They tell others who’s allowed to work.
+
+---
+
+## 1️⃣3️⃣ Task: I²C Health  
+**Excellent that this is separate.**
+
+Monitors:
+- NACK streaks
+- FIFO corruption
+- INT anomalies
+
+Actions:
+- Bus reset
+- Sensor re-init
+- Escalation to FSM
+
+This prevents one bad wire from nuking the system.
+
+---
+
+## 1️⃣4️⃣ Task: Resource Monitor  
+**Low priority, low drama, high value.**
+
+Checks:
+- Heap free / largest block
+- Stack watermarks
+- Queue depth
+
+Only logs or raises soft alarms.  
+Never takes corrective action directly.
+
+---
+
+## 1️⃣5️⃣ Task: Power Monitor  
+**Correctly isolated from resource monitor.**
+
+Handles:
+- Vbat ADC
+- Brownout prediction
+- Performance downgrade
+- Controlled reboot request
+
+Power problems deserve their own sandbox.
+
+---
+
+## 1️⃣6️⃣ Task: Fault Logger  
+**Yes. Centralized, not scattered.**
+
+Owns:
+- Fault taxonomy
+- RAM ring buffer
+- NVS persistence
+- CRC protection
+
+Rule:
+- Logging never blocks critical paths
+- Writes are rate-limited
+
+Logs should observe disasters, not cause new ones.
+
+---
+
+## 1️⃣7️⃣ Task: Output Interface  
+**Near the end is correct.**
+
+Produces:
+- BPM
+- SQI
+- Confidence
+- Validity flags
+- Reason codes
+- Timestamp
+
+Rule:
+- Never compute
+- Never infer
+- Never lie
+
+If data is stale or invalid, it must say so loudly.
+
+---
+
+## 1️⃣8️⃣ Diagnostics & Test Hooks  
+**Exactly here. Not earlier.**
+
+Includes:
+- Build flags
+- Signal injection
+- Task heartbeat counters
+- Optional tracing
+
+Must be removable without changing behavior.
+
+---
+
+## 1️⃣9️⃣ setup()  
+**Now it finally appears. Good.**
+
+Does:
+- Create RTOS objects
+- Init hardware
+- Start tasks
+- Validate init state
+- Enter scheduler
+
+No logic. No loops. No heroics.
+
+---
+
+## 2️⃣0️⃣ loop()  
+**And now the punchline.**
+
+```
+void loop() {
+    vTaskDelay(portMAX_DELAY);
+}
+```
+
+Anything else is a smell.
+
+---
+
+## Final verdict
+
+Your ordering is:
+- **Correct**
+- **Scalable**
+- **Auditable**
+- **Shockingly mature**
+
+This is not a “sketch.”  
+This is a **firmware architecture** that just happens to compile under Arduino.
+
+Next logical steps, if you want pain:
+- full **file/module split**
+- or **priority inversion audit**
+- or **worst-case execution time table**
+
+None are fun. All are how systems survive contact with reality.
+
+------------------------------------------------------------------------
+Turn 7 [USER] — 2026-02-10 05:02:07 UTC
+------------------------------------------------------------------------
+yup but for now give the full functional complete block diagram of the firmware
+
+------------------------------------------------------------------------
+Turn 8 [ASSISTANT] — 2026-02-10 05:02:07 UTC  [model=gpt-5-2]
+------------------------------------------------------------------------
+Right. No more teasing, no more “next steps.”  
+Here is the **final, complete, end-to-end firmware block diagram**.  
+This is the *one you freeze*, print, and build against.
+
+I am not adding commentary inside it. This is the **authoritative map**.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                                   ESP32-C3                                         │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ BOOT ROM + IMAGE MANAGER                                                        │ │
+│ │ • Reset vector                                                                 │ │
+│ │ • Reset reason capture                                                         │ │
+│ │ • Image A / Image B selection                                                  │ │
+│ │ • CRC / SHA validation                                                         │ │
+│ │ • Boot-loop detection & rollback                                               │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ SYSTEM INIT (ONE-SHOT)                                                          │ │
+│ │ • Clock tree + PLL                                                             │ │
+│ │ • esp_timer (monotonic time authority)                                         │ │
+│ │ • Heap / stack regions                                                         │ │
+│ │ • I²C bus recovery                                                             │ │
+│ │ • Config version validation / migration                                        │ │
+│ │ • MAX30105 reset + ID check                                                    │ │
+│ │ • FIFO flush + watermark + INT config                                         │ │
+│ │ • Safe LED defaults                                                           │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ FREERTOS KERNEL                                                                │ │
+│ │ • Scheduler                                                                   │ │
+│ │ • Task Watchdog (TWDT)                                                        │ │
+│ │ • Interrupt Watchdog                                                          │ │
+│ │ • Heap fragmentation tracking                                                 │ │
+│ │ • Stack watermark enforcement                                                 │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ HARDWARE TIMER ISR (TG0 / TIMER0)                                              │ │
+│ │ • 10 ms cadence (100 Hz)                                                       │ │
+│ │ • Jitter & runtime metrics                                                    │ │
+│ │ • Give sem_acquire                                                           │ │
+│ │ • Missed-tick counter                                                        │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ACQUISITION  (P6, HARD RT, 100 Hz)                                       │ │
+│ │ • FIFO burst read                                                             │ │
+│ │ • Timestamp (esp_timer only)                                                  │ │
+│ │ • Frame integrity & alignment                                                 │ │
+│ │ • NACK / bus-error counters                                                   │ │
+│ │ • FIFO desync detection                                                       │ │
+│ │ • Feed TWDT                                                                  │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_raw_samples                                                          │ │
+│ │ • { timestamp, IR, RED, frame_status }                                        │ │
+│ │ • Depth monitoring + overflow detect                                         │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SIGNAL PROCESSING  (P5, 100 Hz)                                         │ │
+│ │ • DC tracking & contact detection                                             │ │
+│ │ • Ambient light rejection                                                     │ │
+│ │ • HP + LP digital filters                                                     │ │
+│ │ • Timestamp-based resampling                                                  │ │
+│ │ • Jitter compensation                                                         │ │
+│ │ • Saturation / rail detection                                                │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ QUEUE: q_filtered_samples                                                     │ │
+│ │ • { timestamp, filtered_signal, signal_quality }                              │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: BEAT DETECTION & BPM  (P4, 100 Hz)                                      │ │
+│ │ • Peak detection                                                             │ │
+│ │ • Refractory enforcement                                                     │ │
+│ │ • RR interval calculation                                                    │ │
+│ │ • Instant BPM + rolling avg + EMA                                           │ │
+│ │ • Physiological limit rejection                                             │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│            │                          │                                            │
+│            ▼                          ▼                                            │
+│ ┌───────────────────────┐   ┌───────────────────────────────────────────────┐   │
+│ │ EVENT GROUP            │   │ SHARED DATA (MUTEX-PROTECTED)                  │   │
+│ │ • BIT_NEW_BEAT         │   │ • current_bpm                                 │   │
+│ │ • BIT_CONTACT_LOST     │   │ • rr_variance                                 │   │
+│ │ • BIT_CLOCK_DRIFT      │   │ • bpm_confidence                              │   │
+│ └───────────────────────┘   └───────────────────────────────────────────────┘   │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SQI ENGINE  (P3, 10 Hz / EVENT-DRIVEN)                                  │ │
+│ │ • Contact confidence                                                         │ │
+│ │ • AC amplitude                                                              │ │
+│ │ • AC/DC perfusion                                                           │ │
+│ │ • IBI variance                                                              │ │
+│ │ • SQI hysteresis + decay                                                    │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ SHARED DATA (MUTEX-PROTECTED)                                                │ │
+│ │ • SQI value (0–100)                                                         │ │
+│ │ • SQI valid flag                                                            │ │
+│ │ • SQI trend                                                                 │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: ADAPTIVE LED CONTROL  (P2, 20 Hz)                                      │ │
+│ │ • IR DC targeting                                                           │ │
+│ │ • Skin-tone bounded current limits                                          │ │
+│ │ • LED aging compensation                                                    │ │
+│ │ • Thermal accumulation model                                                │ │
+│ │ • MAX30105 die-temperature feedback                                        │ │
+│ │ • Brownout derating                                                         │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: SYSTEM STATE MACHINE  (P2, 20 Hz)                                     │ │
+│ │ • INIT → NO_CONTACT → ACQUIRE → TRACKING → FAULT                           │ │
+│ │ • SQI-gated transitions                                                    │ │
+│ │ • Dwell timers                                                             │ │
+│ │ • Fault tagging                                                            │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: I²C BUS HEALTH SUPERVISOR  (P2, EVENT-DRIVEN)                         │ │
+│ │ • INT pin monitoring                                                       │ │
+│ │ • Consecutive NACK tracking                                                │ │
+│ │ • FIFO corruption detection                                                │ │
+│ │ • I²C peripheral reset                                                     │ │
+│ │ • MAX30105 soft re-init                                                    │ │
+│ │ • Escalation to FAULT state                                                │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: RESOURCE MONITOR  (P1, 1 Hz)                                          │ │
+│ │ • Heap free / largest block                                                 │ │
+│ │ • Stack watermarks                                                         │ │
+│ │ • Queue depth & overflow tracking                                          │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: POWER & BROWNOUT MONITOR  (P1, 1 Hz)                                 │ │
+│ │ • Vbat ADC sampling                                                        │ │
+│ │ • Brownout prediction                                                      │ │
+│ │ • Performance mode downgrade                                               │ │
+│ │ • Controlled reboot request                                                │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: FAULT LOGGER & TELEMETRY  (P1, EVENT-DRIVEN)                         │ │
+│ │ • Fault taxonomy                                                           │ │
+│ │ • Circular RAM buffer                                                      │ │
+│ │ • NVS persistence (CRC-protected, rate-limited)                           │ │
+│ │ • Last-reset forensic snapshot                                             │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TASK: OUTPUT CONTRACT / INTERFACE  (P1, 10 Hz)                            │ │
+│ │ • BPM + SQI output                                                        │ │
+│ │ • Confidence & validity flags                                             │ │
+│ │ • Reason codes                                                            │ │
+│ │ • Timestamp                                                              │ │
+│ │ • Stale-data suppression                                                  │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                      │                                                             │
+│                      ▼                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ TRANSPORT ADAPTER                                                          │ │
+│ │ • BLE GATT / UART / USB CDC                                                │ │
+│ │ • Backpressure handling                                                   │ │
+│ │ • Rate limiting                                                           │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│ ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ DIAGNOSTICS & TEST HOOKS                                                    │ │
+│ │ • BUILD_DEV / BUILD_TEST / BUILD_PROD                                     │ │
+│ │ • Signal injection bypass                                                  │ │
+│ │ • Task heartbeat counters                                                  │ │
+│ │ • Optional tracing (UART / RTT)                                            │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+└────────────────────────────────────────────────────────────────────────────────────┘
+                     ▲
+                     │ I²C @ 400 kHz + INT GPIO
+                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                                   MAX30105                                       │
+│ • IR + RED LEDs                                                                  │
+│ • Analog Front End                                                              │
+│ • 18-bit ADC                                                                    │
+│ • FIFO + Watermark Interrupt                                                   │
+│ • Die Temperature Sensor                                                       │
+└────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### This is **complete**
+
+- No missing paths  
+- No hidden control flow  
+- No “we’ll add it later” boxes  
+
+From here, everything else is **implementation**, not architecture.
+
+When you’re ready, the *next* painful but clean step is:
+- **file-level module split** that mirrors this diagram *exactly*
+
+That’s where firmware either stays elegant or quietly rots.

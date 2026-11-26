@@ -1,0 +1,149 @@
+========================================================================
+REFINED CHAT ARCHIVE — 2026-08-27_bom-identification
+========================================================================
+Title:               BOM identification
+Conversation ID:     6a904566-9584-83e9-b1a2-22d822c0d897
+Source file:         conversations-001.json  (ChatGPT data export)
+Source type:         ChatGPT export JSON (.json)
+Created:             2026-08-27  (2026-08-27 14:11:32 UTC)
+Last update:         2026-08-27 14:12:04 UTC
+Turns:               6 total  (main branch 6: 1 user / 5 assistant; off-branch alternates 0)
+Model(s):            gpt-5-6
+Archived:            False   Starred: None
+Default model:       auto
+Export nodes seen:   7
+Archive generated:   2026-11-26 (tools/build_archive.py)
+========================================================================
+
+## SECTION A — CONSOLIDATED USER QUESTIONS (SINGLE PARAGRAPH)
+
+The user began by asking: “[IMAGE ATTACHMENT file_id=file_0000000056148208a46df62f3de4dd3c, name=47856ccf-b8d7-4eb1-abee-d72ad52dc756.png, mime=image/png, 550x550px, size=308825 bytes] — file referenced in export manifest (.dat); binary not included in provided export bom used in this”.
+
+## SECTION B — COMPREHENSIVE CHAT SUMMARY & ACTIONABLE SUGGESTIONS
+
+### Full Summary
+
+**Overview.** Identifying parts on a BOM/schematic photo — mainly Q1 and the circuit's function.
+
+**Conversation profile.** 6 turns on the main branch (1 user / 5 assistant). Created 2026-08-27 (2026-08-27 14:11:32 UTC); last updated 2026-08-27 14:12:04 UTC. Source: conversations-001.json (chatgpt export json). Model(s) seen: gpt-5-6.
+
+**Key concepts, decisions, architecture & calculations discussed.**
+- The important part: Q1
+- What the circuit is doing
+- PWM input → driver/amplifier → MOSFET gate → load
+- PWM: 3.3/5 V logic
+- Supply/load: 3.3–24 V
+- PWM frequency: advertised ≤100 kHz
+
+**Decisions & recommendations recorded in the conversation.**
+- But don't trust the "80 A" marketing just because the silicon package looks heroic.
+
+**Code / config / commands fingerprint.**
+- No fenced code blocks detected.
+- No explicit file paths mentioned.
+- Attachments referenced: 1 (see 'Referenced Attachments' appendix; binaries not included in provided export).
+
+**Outcome / final state.**
+The conversation closed with the assistant stating (verbatim excerpt): “Yes. This is the **YYMOS-1 single-channel PWM MOSFET power amplifier module**. The manufacturer/seller specifications describe it as a 3.3–24 V PWM amplifier, up to 100 kHz, with DC loads up to about 10 A. citeturn0search0turn0search1 From your photo, the BOM is approximately: | Ref | Component | Marking / likely value | Qty | |---|---|---:|---:| | Q1 | N-channel power MOSFET | **80N09 / 80N09-type** | 1 | | U1 | PWM/gate-drive IC | **L27? / L272-type** marking | 1 | | D1 | Signal/Schottky diode | SMD, exact part unclear | 1 | | D2/D3 | Indicator LEDs | Power/PWM indicators | 2 | | R1 | Re…”
+
+### Suggestions & Next Steps
+
+- Finish with a full ERC + DRC pass (unconnected pins, clearance, annular ring, silk over pads), define RF/antenna keepouts, and verify every footprint against its datasheet before sending to fab.
+- Export Gerbers + drill files and inspect them in a viewer (gerbv/KiCad viewer) — visual inspection catches 90% of fab-house rejections.
+- Drive logic-level MOSFETs directly (≤3.3 V Vgs is marginal — prefer AO3400/IRLB3034 class parts), always add a 10 kΩ gate pull-down, and flyback-protect inductive loads with a diode.
+- For sustained >5 A, compute Rds(on) × I²R losses and heatsink accordingly — 7 A through 0.02 Ω is ~1 W, at the edge of TO-220 free-air ratings.
+- Regenerate this archive after every ChatGPT export (Settings → Data controls → Export) and diff against the previous INDEX.md to catch missing turns.
+- Lock in the winning decision from this chat into your project docs/repo before the next ChatGPT session; context window loss is the main failure mode.
+
+## SECTION C — COMPLETE PIN-TO-PIN REFINED TRANSCRIPT
+(Turn 1 → Turn 6 on the main branch; 0 off-branch alternate turn(s) preserved in the appendix)
+
+------------------------------------------------------------------------
+Turn 1 [USER] — 2026-08-27 14:11:30 UTC  [multimodal_text]
+------------------------------------------------------------------------
+[IMAGE ATTACHMENT file_id=file_0000000056148208a46df62f3de4dd3c, name=47856ccf-b8d7-4eb1-abee-d72ad52dc756.png, mime=image/png, 550x550px, size=308825 bytes] — file referenced in export manifest (.dat); binary not included in provided export
+bom used in this
+
+------------------------------------------------------------------------
+Turn 2 [ASSISTANT] — 2026-08-27 14:11:37 UTC  [thoughts, model=gpt-5-6]
+------------------------------------------------------------------------
+(reasoning trace present in export but empty/redacted)
+
+------------------------------------------------------------------------
+Turn 3 [ASSISTANT] — 2026-08-27 14:11:48 UTC  [thoughts, model=gpt-5-6]
+------------------------------------------------------------------------
+(thought summary) Identified chip markings from image
+
+------------------------------------------------------------------------
+Turn 4 [ASSISTANT] — 2026-08-27 14:11:52 UTC  [thoughts, model=gpt-5-6]
+------------------------------------------------------------------------
+(thought summary) Searched 9 websites
+
+------------------------------------------------------------------------
+Turn 5 [ASSISTANT] — 2026-08-27 14:11:52 UTC  [reasoning_recap, model=gpt-5-6]
+------------------------------------------------------------------------
+(reasoning recap) Worked for 19s
+
+------------------------------------------------------------------------
+Turn 6 [ASSISTANT] — 2026-08-27 14:11:50 UTC  [model=gpt-5-6]
+------------------------------------------------------------------------
+Yes. This is the **YYMOS-1 single-channel PWM MOSFET power amplifier module**. The manufacturer/seller specifications describe it as a 3.3–24 V PWM amplifier, up to 100 kHz, with DC loads up to about 10 A. citeturn0search0turn0search1
+
+From your photo, the BOM is approximately:
+
+| Ref | Component | Marking / likely value | Qty |
+|---|---|---:|---:|
+| Q1 | N-channel power MOSFET | **80N09 / 80N09-type** | 1 |
+| U1 | PWM/gate-drive IC | **L27? / L272-type** marking | 1 |
+| D1 | Signal/Schottky diode | SMD, exact part unclear | 1 |
+| D2/D3 | Indicator LEDs | Power/PWM indicators | 2 |
+| R1 | Resistor | **222 = 2.2 kΩ** | 1 |
+| R2 | Resistor | **103 = 10 kΩ** | 1 |
+| R3 | Resistor | **222 = 2.2 kΩ** | 1 |
+| R4 | Resistor | **103 = 10 kΩ** | 1 |
+| R5 | Resistor | **?** near MOSFET gate | 1 |
+| C1 | Capacitor | SMD, value not readable | 1 |
+| J1 | 2-pin screw terminal | PWM / GND | 1 |
+| J2 | 4-pin screw terminal | Power + load | 1 |
+| PCB | YYMOS-1 board | ~35 × 21 mm | 1 |
+
+### The important part: Q1
+
+The large TO-220 device appears to be marked something like **80N09**. That's an N-channel MOSFET in the general **80 V / high-current** class.
+
+But don't trust the "80 A" marketing just because the silicon package looks heroic. The actual continuous current on this tiny PCB is limited heavily by:
+
+- PCB copper
+- thermal dissipation
+- MOSFET RDS(on)
+- connector rating
+- switching frequency
+- heatsinking
+
+The module itself is advertised for **≤10 A DC loads**, despite the MOSFET potentially having a much higher silicon current rating. citeturn0search0
+
+### What the circuit is doing
+
+It's essentially:
+
+**PWM input → driver/amplifier → MOSFET gate → load**
+
+The MOSFET switches the load rapidly, so your MCU doesn't have to carry the load current.
+
+The board accepts approximately:
+
+**PWM: 3.3/5 V logic**  
+**Supply/load: 3.3–24 V**  
+**PWM frequency: advertised ≤100 kHz**  
+**Load: advertised ≤10 A** citeturn0search0
+
+One particularly interesting detail: the board has **no obvious large electrolytic capacitor**, which makes sense for a PWM amplifier rather than a conventional DC regulator. Humanity has once again decided that a screw terminal and a MOSFET are sufficient engineering documentation.
+
+If you're trying to **clone this board**, I can also reverse-engineer the **complete schematic and component values from this PCB**, including the likely U1, MOSFET, gate resistor, diode and LED circuit.
+
+------------------------------------------------------------------------
+### REFERENCED ATTACHMENTS (1)
+Binary files referenced by this conversation. The provided export did NOT include
+the .dat payloads, so checksums cannot be computed here — see raw_dat_attachments/MANIFEST_MISSING.md.
+
+- file_id=file_0000000056148208a46df62f3de4dd3c, name=47856ccf-b8d7-4eb1-abee-d72ad52dc756.png, mime=image/png, size=308825 bytes

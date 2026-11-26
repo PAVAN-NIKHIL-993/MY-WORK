@@ -1,0 +1,2219 @@
+========================================================================
+REFINED CHAT ARCHIVE — 2026-09-30_emr-in-pcb-design
+========================================================================
+Title:               EMR In PCB Design
+Conversation ID:     6abc6150-24c8-83e8-acdb-da94972d6874
+Source file:         conversations-001.json  (ChatGPT data export)
+Source type:         ChatGPT export JSON (.json)
+Created:             2026-09-30  (2026-09-30 01:09:36 UTC)
+Last update:         2026-09-30 01:49:01 UTC
+Turns:               16 total  (main branch 16: 4 user / 12 assistant; off-branch alternates 0)
+Model(s):            gpt-5-6, gpt-5-6-t-mini
+Archived:            False   Starred: None
+Default model:       auto
+Export nodes seen:   17
+Archive generated:   2026-11-26 (tools/build_archive.py)
+========================================================================
+
+## SECTION A — CONSOLIDATED USER QUESTIONS (SINGLE PARAGRAPH)
+
+The user began by asking: “emr in pcb”. Building on that, they asked: “flow of pcb”. Subsequently, they requested: “explain all the existing rules”. Finally, they asked: “Please provide a comprehensive overview of all existing PCB design rules related to Electrical Rule Check (ERC) and Design Rule Check (DRC). Include detailed explanations of each rule type, especially focusing on pin-to-pin connectivity and constraints. Cover typical checks such as clearance, spacing, net connectivity, pin compatibility, and any other relevant pin-level validation rules used to ensure correct and reliable PCB design. Present the information clearly with examples where applicable.”.
+
+## SECTION B — COMPREHENSIVE CHAT SUMMARY & ACTIONABLE SUGGESTIONS
+
+### Full Summary
+
+**Overview.** EMC/EMI in PCB design plus ERC and DRC rule overviews: clearance vs creepage, pin-conflict map, manufacturing checks and how to apply them in KiCad.
+
+**Conversation profile.** 16 turns on the main branch (4 user / 12 assistant). Created 2026-09-30 (2026-09-30 01:09:36 UTC); last updated 2026-09-30 01:49:01 UTC. Source: conversations-001.json (chatgpt export json). Model(s) seen: gpt-5-6, gpt-5-6-t-mini.
+
+**Key concepts, decisions, architecture & calculations discussed.**
+- Main PCB sources of EMR
+- How to reduce EMR
+- Important distinction
+- EMR ≠ EMI
+- If you're using KiCad
+- ERC: Electrical Rules Check
+- A. Connection checks
+- Example: `Input Power pin not driven`
+- ERC: conflict checks
+- ERC: miscellaneous checks
+- The Pin Conflicts Map
+- DRC: Design Rules Check
+- DRC electrical checks
+- Clearance vs creepage
+- Clearance
+- Creepage
+- DRC manufacturing checks
+- Important DRC manufacturing concepts
+
+**Decisions & recommendations recorded in the conversation.**
+- I’ll break down **ERC and DRC in KiCad 10.0.4**, including what each rule actually checks, why it triggers, and what you should normally do about it.
+- DRC readability / silkscreen checks These don't usually affect whether electrons move.
+- You should investigate it. ### Warning Means: > Something may be intentional, but KiCad wants you to review it. ### Ignore No report is generated for that check.
+- ERC labels and buses ERC also validates the schematic's naming and hierarchical structure. ### Multiple labels on one net KiCad must choose a canonical net name.
+- Therefore it can report: **More than one name given to this bus or net.** citeturn779435view3 ### Local vs global labels A local label and global label with the same name don't necessarily create the connection you might expect.
+- Track width Example: Then: Important detail: KiCad distinguishes **optimal routing width** from an actual minimum/maximum DRC constraint.
+- Board outline The `Edge.Cuts` geometry must form valid closed outlines.
+- What ERC and DRC do NOT prove Passing every rule does **not** prove: For example: may pass many structural checks while still having an incorrectly selected regulator or incorrect operating conditions.
+
+**Code / config / commands fingerprint.**
+- Fenced code blocks by language: plain×100, text×100
+- No explicit file paths mentioned.
+
+**Outcome / final state.**
+The conversation closed with the assistant stating (verbatim excerpt): “For **KiCad 10.0.x, including the 10.0.4 workflow you have been using**, the complete rule system is best understood as two layers: ```text SCHEMATIC │ └── ERC ├── Pin-to-pin electrical compatibility ├── Net connectivity ├── Power-source validation ├── Labels / buses / sheets └── Symbol consistency PCB │ └── DRC ├── Pad/net connectivity ├── Clearance / spacing ├── Track / via geometry ├── Manufacturing limits ├── Footprint consistency ├── High-speed constraints └── Mechanical / silkscreen checks ``` The important distinction is this: > **ERC understands the electrical meaning of pins. DRC prim…”
+
+### Suggestions & Next Steps
+
+- Power the ESP32 from a clean 3.3 V rail: ≥100 µF bulk + 100 nF ceramic at the VDD pins, and a separate regulator for servos/motors — brownouts masquerade as random firmware bugs.
+- Respect boot strapping pins (GPIO 0/2/12 on classic ESP32, GPIO 2/8/9 on C3): no external pulls that fight the straps, and never drive GPIO12 high at reset on 5 V-tolerant modules.
+- Enable the hardware watchdog (esp_task_wdt) around your main loop and use deep-sleep with RTC retention for battery nodes.
+- Finish with a full ERC + DRC pass (unconnected pins, clearance, annular ring, silk over pads), define RF/antenna keepouts, and verify every footprint against its datasheet before sending to fab.
+- Export Gerbers + drill files and inspect them in a viewer (gerbv/KiCad viewer) — visual inspection catches 90% of fab-house rejections.
+- Drive logic-level MOSFETs directly (≤3.3 V Vgs is marginal — prefer AO3400/IRLB3034 class parts), always add a 10 kΩ gate pull-down, and flyback-protect inductive loads with a diode.
+- For sustained >5 A, compute Rds(on) × I²R losses and heatsink accordingly — 7 A through 0.02 Ω is ~1 W, at the edge of TO-220 free-air ratings.
+- Lock in the winning decision from this chat into your project docs/repo before the next ChatGPT session; context window loss is the main failure mode.
+
+## SECTION C — COMPLETE PIN-TO-PIN REFINED TRANSCRIPT
+(Turn 1 → Turn 16 on the main branch; 0 off-branch alternate turn(s) preserved in the appendix)
+
+------------------------------------------------------------------------
+Turn 1 [USER] — 2026-09-30 01:09:44 UTC
+------------------------------------------------------------------------
+emr in pcb
+
+------------------------------------------------------------------------
+Turn 2 [ASSISTANT] — 2026-09-30 01:09:45 UTC  [model=gpt-5-6]
+------------------------------------------------------------------------
+If you mean **EMI/EMR in PCB design**, then **EMR usually means Electromagnetic Radiation**.
+
+In a PCB, EMR is unwanted electromagnetic energy radiated by traces, loops, switching circuits, clocks, motors, etc. Basically, your PCB becomes a tiny radio station without being asked. Humanity continues to invent antennas accidentally.
+
+### Main PCB sources of EMR
+
+- **High-speed digital traces**: clocks, SPI, USB, etc.
+- **Switching regulators**: buck/boost converters
+- **MOSFET switching**
+- **Motor/ESC lines**
+- **Long PCB traces**
+- **Large current loops**
+- **Poor ground layout**
+- **Fast-rising/falling signals**
+- **Unterminated transmission lines**
+
+### How to reduce EMR
+
+| Problem | PCB solution |
+|---|---|
+| Large current loop | Minimize loop area |
+| Noisy power traces | Keep them short and wide |
+| Fast digital signals | Control trace impedance / add series resistor |
+| Switching regulator noise | Keep input/output loops very small |
+| Ground noise | Use a solid ground plane |
+| RF leakage | Use ground stitching vias |
+| Noise from PCB edges | Keep high-speed traces away from edges |
+| Motor/relay noise | Separate power/ground paths and add suppression |
+| EMI between layers | Use continuous reference planes |
+| Connector radiation | Place filtering close to connector |
+
+### Important distinction
+
+**EMR ≠ EMI**
+
+- **EMR** = electromagnetic radiation being emitted.
+- **EMI** = electromagnetic interference caused by electromagnetic energy coupling into another circuit.
+
+For example:
+
+```text
+ESP32 clock trace
+       │
+       │  electromagnetic radiation
+       ↓
+   ~~~~~~~~~~~~~~~
+       ↓
+Sensitive analog trace
+       ↓
+   unwanted noise
+```
+
+For a PCB you're designing, the biggest practical rule is:
+
+> **Keep high-current/high-speed loops physically small and give return current a short, continuous path through the ground plane.**
+
+If by **EMR** you meant something else in PCB manufacturing, such as **EMR material, EMR shielding, or EMR/EMI testing**, the term has different meanings.
+
+------------------------------------------------------------------------
+Turn 3 [USER] — 2026-09-30 01:39:49 UTC
+------------------------------------------------------------------------
+flow of pcb
+
+------------------------------------------------------------------------
+Turn 4 [ASSISTANT] — 2026-09-30 01:39:48 UTC  [model=gpt-5-6]
+------------------------------------------------------------------------
+If by **“flow of PCB”** you mean the **complete PCB manufacturing/design flow**, here is the standard process:
+
+```text
+IDEA / REQUIREMENTS
+        ↓
+CIRCUIT DESIGN
+        ↓
+SCHEMATIC CAPTURE
+        ↓
+COMPONENT SELECTION
+        ↓
+PCB LAYOUT
+        ↓
+PLACEMENT
+        ↓
+ROUTING
+        ↓
+GROUND / POWER PLANES
+        ↓
+DRC / ERC
+        ↓
+GERBER + DRILL FILES
+        ↓
+PCB MANUFACTURING
+        ↓
+PCB ASSEMBLY
+        ↓
+INSPECTION / TESTING
+        ↓
+PROGRAMMING
+        ↓
+FINAL TEST
+        ↓
+PRODUCT
+```
+
+### If you're using KiCad
+
+The practical KiCad flow is:
+
+**1. Schematic**
+→ Draw circuit  
+→ Assign footprints  
+→ Electrical Rules Check
+
+**2. PCB Editor**
+→ Import schematic  
+→ Set board stackup/design rules  
+→ Draw board outline  
+→ Place components  
+→ Route tracks  
+→ Add copper zones  
+→ Add mounting holes / markings
+
+**3. Verification**
+→ Design Rules Check (DRC)  
+→ Check clearances  
+→ Check unconnected nets  
+→ Check silkscreen overlap
+
+**4. Manufacturing output**
+→ Gerber files  
+→ Drill files  
+→ BOM  
+→ Pick-and-place file, if assembly is required
+
+**5. Fabrication**
+→ Copper layers  
+→ Lamination  
+→ Drilling  
+→ Plating  
+→ Etching  
+→ Solder mask  
+→ Silkscreen  
+→ Surface finish  
+→ Electrical testing
+
+**6. Assembly**
+→ Solder paste  
+→ SMT placement  
+→ Reflow  
+→ THT soldering  
+→ Inspection
+
+**7. Bring-up**
+→ Visual inspection  
+→ Continuity / short test  
+→ Power-up with current limiting  
+→ Firmware programming  
+→ Functional testing
+
+For a **2-layer PCB**, the simplified physical stack is:
+
+```text
+TOP SILK
+────────────
+SOLDER MASK
+────────────
+TOP COPPER
+────────────
+FR-4
+────────────
+BOTTOM COPPER
+────────────
+SOLDER MASK
+────────────
+BOTTOM SILK
+```
+
+If you meant **current/signal flow through a PCB**, rather than the PCB development/manufacturing flow, that's a different beast.
+
+------------------------------------------------------------------------
+Turn 5 [USER] — 2026-09-30 01:40:39 UTC
+------------------------------------------------------------------------
+explain all the existing rules
+
+------------------------------------------------------------------------
+Turn 6 [ASSISTANT] — 2026-09-30 01:40:40 UTC  [model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+I’ll break down **ERC and DRC in KiCad 10.0.4**, including what each rule actually checks, why it triggers, and what you should normally do about it. Human beings did, in fact, invent several dozen ways to accidentally connect two wires.
+
+------------------------------------------------------------------------
+Turn 7 [ASSISTANT] — 2026-09-30 01:40:54 UTC  [thoughts, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+(thought summary) Searched 1 website
+
+------------------------------------------------------------------------
+Turn 8 [ASSISTANT] — 2026-09-30 01:40:54 UTC  [reasoning_recap, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+(reasoning recap) Worked for 14s
+
+------------------------------------------------------------------------
+Turn 9 [ASSISTANT] — 2026-09-30 01:40:54 UTC  [model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+Yes. For **KiCad 10.0.x**, there are two different rule-checking systems:
+
+**ERC = Electrical Rules Check** → checks the **schematic**.  
+**DRC = Design Rules Check** → checks the **PCB layout**.
+
+They solve different problems. ERC asks, “Does this circuit make electrical sense?” DRC asks, “Can this physical board actually be fabricated and connected the way you drew it?” KiCad documents both systems and lets you change many violation severities between **Error, Warning, and Ignore**. citeturn200805view1turn200805view0
+
+# 1. ERC: Electrical Rules Check
+
+Run it in the **Schematic Editor**.
+
+Think of ERC as the electronic proofreader. It does not know whether your PCB trace is 0.2 mm or 2 mm. It cares about **pins, nets, labels, power, buses and symbol logic**.
+
+## A. Connection checks
+
+| ERC rule | What it means | Typical cause |
+|---|---|---|
+| **Pin not connected** | A symbol pin is not connected to a net | Forgot a wire |
+| **Input pin not driven by any Output pins** | An input has no recognized driving pin | Input connected only to another input |
+| **Input Power pin not driven by any Output Power pins** | Power input has no recognized power source | Missing `PWR_FLAG` |
+| **A pin with a "no connection" flag is connected** | You marked a pin NC but actually connected it | Accidental NC marker |
+| **Unconnected "no connection" flag** | NC marker isn't actually on a pin/label | NC marker floating nearby |
+| **Label not connected** | Label isn't attached to anything | Label slightly off the wire |
+| **Label connected to only one pin** | Label is effectively unused | Label placed on one isolated pin |
+| **Global label only appears once** | Global label doesn't connect anywhere else | Intentional sometimes |
+| **Local and global labels have the same name** | Same-looking names may have different scope | Naming collision |
+| **Wires not connected to anything** | Entire wire is floating | Leftover wire |
+| **Bus Entry needed** | Imported EAGLE schematic requires bus entry | EAGLE import |
+| **Symbol pin or wire end off connection grid** | Endpoint isn't on the required connection grid | Moved manually |
+| **Four connection points are joined together** | Four-way junction may be ambiguous | Cross junction |
+| **Duplicate pins with different nets** | Same pin number is assigned to different nets | Bad custom symbol |
+| **Label connects more than one wire** | Label anchor lands ambiguously on two wires | Bad label placement |
+| **Unconnected wire endpoint** | Wire ends without another object | Incomplete connection |
+
+These are the documented KiCad 10 ERC connection checks. citeturn200805view1
+
+### Example: `Input Power pin not driven`
+
+Suppose:
+
+```text
+       +5V
+        │
+        │
+      U1 VCC
+```
+
+You may think, “Obviously that's powered.”
+
+ERC sees the **VCC pin as Power Input**, but if the thing providing +5 V is a connector with only **Passive** pins, KiCad does not consider that connector to be a power source. A `PWR_FLAG` or an appropriate **Power Output** pin can establish that source. citeturn200805view1
+
+This is one of the most common ERC errors.
+
+---
+
+# 2. ERC: conflict checks
+
+These catch contradictions between symbols, sheets and buses.
+
+| ERC rule | Meaning |
+|---|---|
+| **Different footprint assigned in another unit of the symbol** | Units A/B/C of one multi-unit symbol have different footprints |
+| **Different net assigned to a shared pin in another unit** | Same shared pin is connected to different nets |
+| **Duplicate sheet names within a given sheet** | Two hierarchical sheets have the same name |
+| **Mismatch between hierarchical labels and sheet pins** | Parent/child hierarchical connections don't match |
+| **More than one name given to this bus or net** | One net has multiple labels |
+| **Conflict between bus alias definitions across schematic sheets** | Same bus alias means different things on different sheets |
+| **Buses are graphically connected but share no bus members** | Buses touch visually but have no common signals |
+| **Invalid connection between bus and net items** | Ordinary net incorrectly connected directly to bus |
+| **Net is graphically connected to a bus but not a bus member** | Wire claims to enter bus but isn't actually part of it |
+| **Ground pin not connected to ground net** | Likely GND pin is attached to some other named net |
+
+KiCad's documentation groups these as **Conflicts ERC checks**. citeturn200805view1turn452014view3
+
+---
+
+# 3. ERC: miscellaneous checks
+
+These are less about electrical connectivity and more about the sanity of the schematic database.
+
+| ERC rule | Meaning |
+|---|---|
+| **Pin name resembles stacked pin** | Pin-number syntax looks like a stacked-pin definition but is malformed |
+| **Field name has leading or trailing whitespace** | Field starts/ends with spaces |
+| **Symbol is not annotated** | Missing unique reference such as R1, C3, U2 |
+| **Unresolved text variable** | `${something}` is used but undefined |
+| **Undefined netclass** | Netclass referenced but not defined |
+| **SPICE model issue** | SPICE model contains an error |
+| **Labels are similar (case difference only)** | e.g. `DATA` vs `Data` |
+| **Power pins are similar (case difference only)** | e.g. `VCC` vs `Vcc` |
+| **Power pin and label are similar** | Power name and label differ only in case |
+| **Library symbol issue** | Library unavailable, disabled, or symbol missing |
+| **Symbol doesn’t match copy in library** | Schematic symbol differs from current library symbol |
+| **Symbol has more units than are defined** | Too many units placed |
+| **Symbol has units that are not placed** | Some multi-unit sections are missing |
+| **Symbol has input pins that are not placed** | Unplaced input pins exist |
+| **Symbol has bidirectional pins that are not placed** | Unplaced I/O pins exist |
+| **Symbol has power input pins that are not placed** | Unplaced power pins exist |
+| **Conflict problem between pins** | Connected pin types violate the Pin Conflicts Map |
+
+KiCad also supports **user-defined ERC errors/warnings**, which is useful for project-specific checks. citeturn392327view0
+
+---
+
+# 4. The Pin Conflicts Map
+
+This deserves special attention because it explains many ERC errors.
+
+Each schematic pin has an electrical type, such as:
+
+```text
+Input
+Output
+Bidirectional
+Tri-state
+Passive
+Free
+Unspecified
+Power Input
+Power Output
+Open Collector
+Open Emitter
+```
+
+KiCad checks whether combinations of these pin types are electrically reasonable. For example:
+
+```text
+OUTPUT ───── OUTPUT
+```
+
+is normally an ERC conflict because two things are trying to drive the same net. KiCad's Pin Conflicts Map lets you configure these combinations as **allowed, warning, or error**. citeturn200805view1turn603112view0
+
+This is why the **correct symbol pin type matters**. A badly created custom symbol can manufacture ERC errors that have nothing to do with the actual circuit.
+
+---
+
+# 5. DRC: Design Rules Check
+
+Now we move from schematic to **actual PCB geometry**.
+
+DRC checks things such as shorts, clearances, trace widths, holes, board edges, footprints, silkscreen, connectivity and signal-integrity constraints. citeturn200805view0
+
+There are several categories.
+
+# 6. DRC electrical checks
+
+| DRC rule | Meaning |
+|---|---|
+| **Items shorting two nets** | Copper belonging to different nets physically touches |
+| **Tracks crossing** | Tracks of different nets cross |
+| **Clearance violation** | Two copper items are closer than allowed |
+| **Creepage violation** | Surface path between different nets is too short |
+| **Via is not connected or connected on only one layer** | Via doesn't properly connect layers |
+| **Track has unconnected end** | Track terminates without another copper connection |
+| **Thermal relief connection to zone incomplete** | Pad doesn't have enough thermal spokes |
+
+KiCad determines copper clearance from board-level settings, net classes and custom rules. citeturn200805view0
+
+### Clearance vs creepage
+
+These sound annoyingly similar because apparently two names weren't enough.
+
+**Clearance**:
+
+```text
+Copper A       Copper B
+██████          ██████
+       <---->
+       air gap
+```
+
+Shortest **through-air** separation.
+
+**Creepage**:
+
+```text
+Copper A
+█████
+      └──────── surface path ────────┐
+                                     █████ Copper B
+```
+
+Distance measured **along the insulating surface**.
+
+Creepage becomes particularly important for higher voltages.
+
+---
+
+# 7. DRC manufacturing checks
+
+These are very important because passing the electrical logic does **not** mean the factory can manufacture the board.
+
+| DRC rule | Meaning |
+|---|---|
+| **Board edge clearance violation** | Copper too close to Edge.Cuts |
+| **Hole clearance violation** | Hole too close to copper |
+| **Drilled hole too close to other hole** | Mechanical drill holes too close |
+| **Drilled holes co-located** | Two drilled holes at same location |
+| **Track width** | Track outside allowed width |
+| **Track angle** | Segment angle violates configured rule |
+| **Track segment length** | Segment too short/long according to rule |
+| **Annular width** | Copper ring around hole is too narrow/wide |
+| **Hole size out of range** | Drill size outside allowed range |
+| **Micro via hole size out of range** | Microvia laser hole outside allowed range |
+| **Courtyards overlap** | Component mechanical keepout regions overlap |
+| **Footprint has no courtyard defined** | Footprint lacks courtyard |
+| **Footprint has malformed courtyard** | Courtyard geometry isn't valid |
+| **Board has malformed outline** | Edge.Cuts doesn't form a valid outline |
+| **Copper sliver** | Tiny unwanted piece/wedge of copper |
+| **Solder mask aperture bridges items with different nets** | One mask opening exposes separate nets |
+| **Copper connection too narrow** | Copper neck is too narrow |
+| **Track connected to post-machined/backdrilled layer** | Track uses copper removed by machining |
+| **Track endpoint not centered on via** | Track ends inside but not at the via center |
+| **Tuning profile track geometries** | Track geometry doesn't match its tuning profile |
+
+These are documented KiCad 10 DRC manufacturing checks. citeturn452014view0turn392327view1
+
+---
+
+# 8. Important DRC manufacturing concepts
+
+### Annular width
+
+For a plated through hole:
+
+```text
+   Copper pad
+ ┌─────────────┐
+ │   ███████   │
+ │   █  O  █   │
+ │   ███████   │
+ └─────────────┘
+
+      O = hole
+```
+
+**Annular width** is the copper ring around the hole.
+
+Too small:
+
+```text
+████ O ████
+```
+
+and manufacturing tolerance can eat the ring away.
+
+---
+
+# 9. DRC schematic-parity checks
+
+These compare the **PCB against the schematic**.
+
+| Rule | Meaning |
+|---|---|
+| **Duplicate footprints** | Same reference appears multiple times |
+| **Missing footprint** | Schematic component has no PCB footprint |
+| **Extra footprint** | PCB has footprint with no schematic symbol |
+| **Footprint attributes don't match symbol** | Value/DNP/BOM-related information differs |
+| **Footprint doesn't match symbol's footprint filters** | Selected footprint violates symbol filter |
+| **Pad net doesn't match schematic** | PCB pad has wrong net |
+| **Missing connection between items** | Same-net copper objects are not physically connected |
+
+These are especially useful after changing the schematic and forgetting to update the board. KiCad explicitly supports updating PCB from schematic or vice versa to synchronize them. citeturn452014view1
+
+---
+
+# 10. DRC signal-integrity checks
+
+These matter more for high-speed designs.
+
+| Rule | Meaning |
+|---|---|
+| **Track length out of range** | Trace doesn't satisfy length constraint |
+| **Skew between tracks out of range** | Related signals differ too much in length |
+| **Too many or too few vias on a connection** | Via count violates the rule |
+| **Differential pair gap out of range** | + and − traces aren't spaced correctly |
+| **Differential uncoupled length too long** | Pair travels separately for too long |
+
+For a differential pair:
+
+```text
+USB+
+════════════════════
+
+USB-
+════════════════════
+      ↑
+     gap
+```
+
+The **gap**, relative lengths and uncoupled sections can all be controlled. citeturn452014view1
+
+---
+
+# 11. DRC readability / silkscreen checks
+
+These don't usually affect whether electrons move. They affect whether humans can tell what they are looking at.
+
+| Rule | Meaning |
+|---|---|
+| **Silkscreen clearance** | Silk objects collide |
+| **Silkscreen clipped by solder mask** | Silk overlaps exposed copper |
+| **Silkscreen clipped by board edge** | Text/graphics extend beyond board |
+| **Text height out of range** | Text too small/large |
+| **Text thickness out of range** | Stroke too thin/thick |
+| **Mirrored text on front layer** | Front text is backwards |
+| **Non-mirrored text on back layer** | Back text is backwards |
+
+KiCad treats several of these as warnings or ignores them by default because they are presentation/manufacturing concerns rather than electrical failures. citeturn452014view2
+
+This connects directly to your earlier question about putting a name into copper. **F.Cu/B.Cu text is not silkscreen**, so those silkscreen rules aren't what determine whether your copper lettering works.
+
+---
+
+# 12. DRC miscellaneous checks
+
+| Rule | Meaning |
+|---|---|
+| **Items not allowed** | Object is inside a keepout/disallowed region |
+| **Copper zones intersect** | Different-net zones collide |
+| **Isolated copper fill** | Copper island isn't connected |
+| **Footprint is not valid** | Net-tie/footprint definition problem |
+| **Padstack is questionable** | Strange/inconsistent pad setup |
+| **PTH inside courtyard** | Plated hole inside another component's courtyard |
+| **NPTH inside courtyard** | Non-plated hole inside another courtyard |
+| **Item on a disabled copper layer** | Object placed on nonexistent copper layer |
+| **Unresolved text variable** | PCB text variable isn't defined |
+| **Footprint component type doesn't match footprint pads** | SMD/THT classification inconsistent |
+| **Footprint field does not match symbol field** | Field values differ |
+| **Footprint not found in libraries** | Library unavailable |
+| **Footprint doesn't match copy in library** | Board footprint differs from library version |
+| **Through-hole pad has no hole** | THT pad is defined without an actual hole |
+
+KiCad 10 documents these under miscellaneous DRC checks. citeturn392327view2
+
+---
+
+# 13. What Error, Warning and Ignore actually mean
+
+This is important.
+
+### Error
+
+```text
+🔴 ERROR
+```
+
+Normally means:
+
+> Something violates a rule that KiCad considers serious.
+
+You should investigate it.
+
+### Warning
+
+```text
+🟡 WARNING
+```
+
+Means:
+
+> Something may be intentional, but KiCad wants you to review it.
+
+### Ignore
+
+```text
+⚪ IGNORE
+```
+
+No report is generated for that check.
+
+KiCad lets you configure severities in the relevant setup panels. citeturn200805view0turn200805view1
+
+Do **not** blindly change everything to Ignore. That is the electronic equivalent of removing the smoke detector because its beeping is annoying.
+
+---
+
+# 14. The difference between ERC and DRC
+
+The easiest way to remember:
+
+```text
+SCHEMATIC
+   │
+   └── ERC
+       "Is the circuit electrically sensible?"
+
+          ↓
+
+PCB
+   │
+   └── DRC
+       "Is the physical implementation valid?"
+```
+
+### Example
+
+Suppose you have:
+
+```text
+ESP32 GPIO ─── LED ─── GND
+```
+
+ERC checks things like:
+
+```text
+✔ Pins connected?
+✔ Pin electrical types sensible?
+✔ GND connection valid?
+✔ Any floating inputs?
+```
+
+DRC checks:
+
+```text
+✔ Trace wide enough?
+✔ Trace has sufficient clearance?
+✔ LED footprint correct?
+✔ Pad connected?
+✔ Copper not shorting another net?
+✔ Board edge clearance OK?
+✔ Holes manufacturable?
+```
+
+So:
+
+> **ERC validates the electrical design logic.**  
+> **DRC validates the physical PCB implementation.**
+
+And neither one proves that your circuit will actually work. A beautifully routed board can still contain a spectacularly stupid circuit. That remains humanity's most reliable design feature.
+
+**Source:** KiCad 10 official documentation for ERC and PCB DRC. citeturn200805view1turn200805view0turn392327view2
+
+------------------------------------------------------------------------
+Turn 10 [USER] — 2026-09-30 01:47:31 UTC
+------------------------------------------------------------------------
+Please provide a comprehensive overview of all existing PCB design rules related to Electrical Rule Check (ERC) and Design Rule Check (DRC). Include detailed explanations of each rule type, especially focusing on pin-to-pin connectivity and constraints. Cover typical checks such as clearance, spacing, net connectivity, pin compatibility, and any other relevant pin-level validation rules used to ensure correct and reliable PCB design. Present the information clearly with examples where applicable.
+
+------------------------------------------------------------------------
+Turn 11 [ASSISTANT] — 2026-09-30 01:47:49 UTC  [thoughts, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+I’m treating this as a KiCad 10.0.4 question and focusing on ERC and PCB DRC rule categories. I’ll distinguish electrical conflicts from physical-layout violations and organize the existing checks clearly.
+(thought summary) Planning the KiCad overview
+(thought summary) Planned the KiCad overview
+
+------------------------------------------------------------------------
+Turn 12 [ASSISTANT] — 2026-09-30 01:47:52 UTC  [thoughts, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+I’m expanding this into a KiCad 10.0.4 reference covering ERC, DRC, connectivity, physical constraints, rule scopes, and common exceptions, while separating actual violations from configurable design settings.
+(thought summary) Building the rule reference
+(thought summary) Built the rule reference
+
+------------------------------------------------------------------------
+Turn 13 [ASSISTANT] — 2026-09-30 01:48:01 UTC  [thoughts, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+I’m separating schematic ERC from PCB DRC: ERC evaluates electrical pin compatibility and connectivity, while DRC checks board geometry, manufacturing clearances, net completeness, and configurable physical constraints.
+(thought summary) Organizing KiCad rules
+
+------------------------------------------------------------------------
+Turn 14 [ASSISTANT] — 2026-09-30 01:48:02 UTC  [thoughts, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+(thought summary) Searched 1 website
+
+------------------------------------------------------------------------
+Turn 15 [ASSISTANT] — 2026-09-30 01:48:02 UTC  [reasoning_recap, model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+(reasoning recap) Worked for 30s
+
+------------------------------------------------------------------------
+Turn 16 [ASSISTANT] — 2026-09-30 01:48:02 UTC  [model=gpt-5-6-t-mini]
+------------------------------------------------------------------------
+For **KiCad 10.0.x, including the 10.0.4 workflow you have been using**, the complete rule system is best understood as two layers:
+
+```text
+SCHEMATIC
+   │
+   └── ERC
+       ├── Pin-to-pin electrical compatibility
+       ├── Net connectivity
+       ├── Power-source validation
+       ├── Labels / buses / sheets
+       └── Symbol consistency
+
+PCB
+   │
+   └── DRC
+       ├── Pad/net connectivity
+       ├── Clearance / spacing
+       ├── Track / via geometry
+       ├── Manufacturing limits
+       ├── Footprint consistency
+       ├── High-speed constraints
+       └── Mechanical / silkscreen checks
+```
+
+The important distinction is this:
+
+> **ERC understands the electrical meaning of pins. DRC primarily understands physical copper, pads, holes, nets and board geometry.**
+
+So a question such as **“Can an MCU output pin be connected to another output pin?”** is fundamentally an ERC question. A question such as **“Are the two pads physically shorted?”** is a DRC question. KiCad's official documentation lists the ERC and DRC checks separately. citeturn174352view0turn613402view0
+
+---
+
+# 1. ERC: Electrical Rule Check
+
+ERC runs on the **schematic**.
+
+It checks whether the schematic's electrical relationships make sense according to the electrical types assigned to symbol pins. Every pin carries an electrical type, and KiCad uses those types to decide whether a connection is reasonable. citeturn209942view0
+
+The main pin types are:
+
+| Pin type | Meaning |
+|---|---|
+| **Input** | Receives a signal |
+| **Output** | Drives a signal |
+| **Bidirectional** | Can input or output |
+| **Tri-state** | Output that can enter high impedance |
+| **Passive** | Electrically neutral connection, e.g. resistor or connector |
+| **Free** | Pin does not electrically affect the device |
+| **Unspecified** | Electrical behavior isn't defined |
+| **Power input** | Device consumes power |
+| **Power output** | Provides power |
+| **Open collector** | Open-collector output |
+| **Open emitter** | Open-emitter output |
+| **Unconnected** | Pin must never be connected |
+
+KiCad specifically notes that selecting the **right electrical type** is important because the type influences both ERC conflict checking and whether a pin is considered driven. citeturn209942view1
+
+---
+
+# 2. ERC pin-to-pin compatibility
+
+This is the part you specifically asked about.
+
+KiCad has a **Pin Conflicts Map**. It is effectively a matrix:
+
+```text
+                 Input  Output  Bidir  Tri-state  Passive ...
+Input              ✓       ✓      ✓       ✓         ✓
+Output             ✓       ✕      ✓       ⚠         ✓
+Bidir              ✓       ✓      ✓       ✓         ✓
+Tri-state          ✓       ⚠      ✓       ⚠         ✓
+Passive            ✓       ✓      ✓       ✓         ✓
+...
+```
+
+The exact default matrix is configurable in **Schematic Setup → Electrical Rules → Pin Conflicts Map**. Each cell can be changed between:
+
+```text
+ALLOWED
+WARNING
+ERROR
+```
+
+KiCad's default matrix specifically treats two ordinary **Output** pins connected together as an error. citeturn174352view0turn468645view0
+
+## Important pin combinations
+
+### Input → Output
+
+```text
+U1 OUT ───────── U2 IN
+```
+
+Normally valid.
+
+The output drives the input.
+
+---
+
+### Input → Input
+
+```text
+U1 IN ───────── U2 IN
+```
+
+The physical connection itself may be valid, but there is no recognized driver.
+
+KiCad therefore separately checks:
+
+**“Input pin not driven by any Output pins.”**
+
+This means that two inputs connected together can generate an ERC error even though there is no physical short. citeturn174352view0
+
+---
+
+### Output → Output
+
+```text
+U1 OUT ───────── U2 OUT
+```
+
+Normally an ERC error.
+
+Why?
+
+```text
+U1 tries to drive HIGH
+          ↓
+       NET
+          ↑
+U2 tries to drive LOW
+```
+
+The two devices may fight each other.
+
+This is precisely why KiCad's default Pin Conflicts Map flags output-to-output connections. citeturn209942view1
+
+There are intentional exceptions, such as certain wired logic arrangements, but those should be modeled with the appropriate pin type rather than simply suppressing everything.
+
+---
+
+### Output → Bidirectional
+
+Often valid because the bidirectional pin can receive the signal.
+
+```text
+MCU_TX/output ───── device I/O
+```
+
+Whether a specific connection should be permitted depends on the operating mode represented by the symbols.
+
+---
+
+### Tri-state → Output
+
+This can be suspicious because the tri-state output may not actually be in high impedance.
+
+KiCad's default settings generate warnings for many tri-state-to-output or tri-state-to-power connections. citeturn209942view1
+
+Typical bus:
+
+```text
+        ┌── U1 TX
+BUS ────┼── U2 TX
+        └── U3 RX
+```
+
+If U1 and U2 can simultaneously drive the bus, that's a real electrical problem.
+
+---
+
+### Passive → anything
+
+A resistor, connector, switch contact, etc. commonly uses **Passive**.
+
+```text
+MCU OUT ─── R ─── LED
+```
+
+The resistor doesn't declare itself a driver, receiver, power source, etc.
+
+KiCad therefore allows passive pins to connect to most other pin types. citeturn209942view1
+
+---
+
+### Power Input → Power Output
+
+Typical regulator:
+
+```text
+VIN ── regulator ── VOUT
+                     │
+                     └──── IC power input
+```
+
+`VOUT` is Power Output.
+
+The IC's supply pin is Power Input.
+
+This is the relationship ERC expects for powered circuitry. citeturn209942view1
+
+---
+
+### Power Input with no Power Output
+
+Example:
+
+```text
+Battery ───── connector ───── MCU VCC
+```
+
+The connector may have **Passive** pins.
+
+To a human:
+
+```text
+Battery = power source
+```
+
+To ERC:
+
+```text
+connector = passive
+VCC pin = power input
+no Power Output detected
+```
+
+So ERC reports:
+
+**Input Power pin not driven by any Output Power pins.**
+
+A `PWR_FLAG` is normally used where appropriate. KiCad describes `PWR_FLAG` as a symbol with a single Power Output pin. citeturn174352view0turn835065search25
+
+---
+
+# 3. ERC connection rules
+
+KiCad 10 has the following documented connection checks. citeturn174352view0
+
+| ERC rule | What it checks |
+|---|---|
+| **Pin not connected** | A pin isn't attached to a net |
+| **Input pin not driven by any Output pins** | Input has no recognized driver |
+| **Input Power pin not driven by any Output Power pins** | Power input lacks a recognized power source |
+| **A pin with a "no connection" flag is connected** | NC-marked pin is actually wired |
+| **Unconnected "no connection" flag** | NC marker isn't properly attached |
+| **Label not connected** | Label is floating |
+| **Label connected to only one pin** | Label isn't actually connecting separate pins |
+| **Global label only appears once** | Global label may be unused |
+| **Local and global labels have the same name** | Potentially confusing/non-connected naming |
+| **Wires not connected to anything** | Floating wire |
+| **Bus Entry needed** | Mainly for EAGLE-imported projects |
+| **Symbol pin or wire end off connection grid** | Endpoint is not on the configured connection grid |
+| **Four connection points are joined together** | Four-way junction may be ambiguous |
+| **Duplicate pins with different nets** | Same pin number of a symbol ends up on different nets |
+| **Label connects more than one wire** | Label anchor is ambiguously connected |
+| **Unconnected wire endpoint** | Wire terminates without a valid connection |
+
+citeturn174352view0turn779435view3
+
+### Particularly important: duplicate pin numbers
+
+Suppose a custom symbol has:
+
+```text
+Pin 1 → VCC
+Pin 1 → GND
+```
+
+KiCad allows multiple physical pins to share a pin number in certain symbol constructions, but **all pins having the same number must belong to the same net**.
+
+So:
+
+```text
+same pin number + different nets
+             ↓
+           ERROR
+```
+
+KiCad documents this one as a non-configurable error. citeturn779435view3
+
+---
+
+# 4. ERC labels and buses
+
+ERC also validates the schematic's naming and hierarchical structure.
+
+### Multiple labels on one net
+
+```text
+          ┌──── DATA
+NET ──────┤
+          └──── SIGNAL
+```
+
+KiCad must choose a canonical net name.
+
+Therefore it can report:
+
+**More than one name given to this bus or net.** citeturn779435view3
+
+### Local vs global labels
+
+```text
+Sheet 1: DATA
+Sheet 2: DATA
+```
+
+A local label and global label with the same name don't necessarily create the connection you might expect.
+
+ERC therefore checks for:
+
+**Local and global labels have the same name.** citeturn174352view0
+
+### Bus consistency
+
+ERC checks:
+
+- duplicate sheet names
+- hierarchical label/sheet-pin mismatch
+- bus alias conflicts
+- graphical bus connections with no common members
+- invalid bus-to-net connections
+- net entering a bus without being an actual bus member
+
+citeturn779435view3
+
+---
+
+# 5. ERC ground validation
+
+KiCad has a specific check:
+
+**Ground pin not connected to ground net**
+
+It looks for a power pin whose name contains `GND` that appears to be connected somewhere other than a GND net while another power pin of the same symbol is correctly connected to a GND net. The comparison is case-insensitive. citeturn779435view4
+
+Example:
+
+```text
+IC
+├── VCC → +3V3
+└── GND → SIGNAL_X
+```
+
+That's suspicious enough for KiCad to flag it.
+
+---
+
+# 6. ERC miscellaneous checks
+
+KiCad 10 also checks:
+
+| Rule | Purpose |
+|---|---|
+| Pin name resembles stacked pin | Detect malformed stacked-pin numbering |
+| Field has leading/trailing whitespace | Catch invisible naming mistakes |
+| Symbol is not annotated | Missing unique reference such as R1/U2 |
+| Unresolved text variable | Undefined `${variable}` |
+| Undefined netclass | Netclass was referenced but not defined |
+| SPICE model issue | SPICE model syntax/problem |
+| Labels differ only by case | e.g. `DATA` vs `Data` |
+| Power pins differ only by case | e.g. `VCC` vs `Vcc` |
+| Power pin and label differ only by case | Possible naming typo |
+| Library symbol issue | Library unavailable or symbol missing |
+| Symbol differs from library copy | Local symbol differs from library version |
+| Symbol has too many units | More units placed than defined |
+| Symbol has unplaced units | Multi-unit symbol is incomplete |
+| Unplaced input pins | Input-bearing unit is missing |
+| Unplaced bidirectional pins | I/O-bearing unit is missing |
+| Unplaced power input pins | Power-bearing unit is missing |
+| Pin conflict | Connection violates Pin Conflicts Map |
+
+citeturn432697view0
+
+---
+
+# 7. The difference between NC flag and Unconnected pin type
+
+This is a subtle but important KiCad distinction.
+
+### No-connect flag
+
+Means:
+
+> “I intentionally leave this pin unused **in this particular design**.”
+
+Example:
+
+```text
+IC pin 7
+   X
+```
+
+### `Unconnected` pin type
+
+Means:
+
+> “This pin should never be connected in any schematic using this symbol.”
+
+KiCad treats this type differently from a regular NC marker. It doesn't report the normal unconnected-pin violation when such a pin is left unconnected, and connections to it are prohibited. citeturn209942view1
+
+---
+
+# 8. DRC: Design Rule Check
+
+Now we move to the **PCB itself**.
+
+DRC verifies the board against physical/electrical constraints and checks that pads are connected according to the netlist/schematic. KiCad explicitly describes DRC as checking both board requirements and whether pads are connected according to the netlist or schematic. citeturn918512view2
+
+The DRC categories in KiCad 10 are:
+
+```text
+Electrical
+Manufacturing
+Schematic parity
+Signal integrity
+Readability
+Miscellaneous
+```
+
+---
+
+# 9. DRC electrical rules
+
+## 9.1 Items shorting two nets
+
+```text
+NET_A █████████
+         │
+         │
+NET_B █████████
+```
+
+Two different nets physically collide.
+
+Example:
+
+```text
++12V ─────────┐
+              ├──── physical copper collision
+GND ──────────┘
+```
+
+DRC reports a short.
+
+KiCad recommends a **net tie** when the connection is intentional. citeturn613402view0
+
+---
+
+# 10. Track crossing
+
+Two tracks belonging to different nets cannot cross on the same copper layer.
+
+```text
+A ───────────────
+        ╲
+         ╲
+          ╲ B
+```
+
+On different layers:
+
+```text
+F.Cu: A ──────────────
+
+B.Cu:       │
+            │
+            B
+```
+
+that can be valid because the layers are physically separated.
+
+KiCad checks the actual copper geometry and net assignments. citeturn613402view0
+
+---
+
+# 11. Clearance / spacing
+
+This is one of the most important DRC rules.
+
+If:
+
+```text
+Copper A ██████
+          ← gap →
+Copper B       ██████
+```
+
+the gap must meet the applicable minimum.
+
+The required clearance can come from:
+
+```text
+Board minimum
+       ↓
+Net class
+       ↓
+Custom rule
+```
+
+KiCad can resolve which rule produced the actual required clearance using **Clearance Resolution**. citeturn613402view0turn174352view1
+
+### Example
+
+Suppose:
+
+```text
+Normal nets = 0.20 mm
+HV net      = 1.50 mm
+```
+
+Then:
+
+```text
+SIGNAL ──0.20mm── SIGNAL       ✓
+HV     ──0.20mm── SIGNAL       ✕
+HV     ──1.50mm── SIGNAL       ✓
+```
+
+KiCad's documentation gives a 1.5 mm custom HV clearance example. citeturn174352view2
+
+---
+
+# 12. Clearance versus physical clearance
+
+These are not identical.
+
+### Electrical clearance
+
+Checks copper belonging to different nets.
+
+```text
+A copper ↔ B copper
+```
+
+### Physical clearance
+
+Can check objects regardless of their net and can include non-copper layers.
+
+Examples:
+
+```text
+same-net copper
+silkscreen
+mask
+courtyard
+edge cuts
+```
+
+KiCad's `physical_clearance` constraint exists specifically for this broader check. citeturn745273view0
+
+---
+
+# 13. Creepage
+
+Creepage is the distance measured **along the surface**, rather than directly through the air.
+
+```text
+Copper A
+████
+   ╲____________________╱
+                        ████
+                        Copper B
+```
+
+This matters especially for higher-voltage isolation.
+
+KiCad supports creepage constraints through the `creepage` rule. citeturn613402view0turn745273view0
+
+---
+
+# 14. Via connectivity
+
+KiCad checks:
+
+**Via is not connected or is connected on only one layer**
+
+Example:
+
+```text
+F.Cu ────────●
+             │
+             │ VIA
+             ●
+B.Cu    nothing
+```
+
+The via may have been intended to connect both layers but only contacts copper on one side.
+
+KiCad normally reports this as a warning. citeturn613402view0
+
+---
+
+# 15. Track dangling ends
+
+Example:
+
+```text
+PAD ────────────────┐
+                    └── nothing
+```
+
+The track ends without connecting to another valid copper object.
+
+DRC can detect this. citeturn613402view0
+
+---
+
+# 16. Thermal-relief connection rules
+
+A thermal relief connection might look like:
+
+```text
+      ───
+       │
+   ─── PAD ───
+       │
+      ───
+```
+
+KiCad can check that enough thermal spokes actually connect the pad to the copper zone.
+
+This is the:
+
+**Thermal relief connection to zone incomplete**
+
+check.
+
+The minimum spoke count can be configured. citeturn174352view1
+
+---
+
+# 17. DRC manufacturing rules
+
+These are not primarily about logical circuitry. They are about whether the board can physically be manufactured reliably.
+
+## Board edge clearance
+
+Copper too close to:
+
+```text
+Edge.Cuts
+```
+
+can violate the specified edge clearance.
+
+```text
+BOARD EDGE
+│
+│ ← clearance → copper
+│       ███████
+```
+
+KiCad calls this the **board edge clearance violation**. citeturn613402view0
+
+---
+
+## Hole clearance
+
+Checks distance between drilled holes and copper objects.
+
+Example:
+
+```text
+Copper ███████
+         ○
+       hole
+```
+
+The specified hole-to-copper gap must be maintained. citeturn613402view0
+
+---
+
+## Hole-to-hole clearance
+
+Checks the distance between mechanically drilled holes.
+
+```text
+   ○       ○
+   ← gap →
+```
+
+KiCad distinguishes mechanical drilling from laser-drilled microvias for this check. citeturn341867view2
+
+---
+
+## Co-located holes
+
+Two drilled holes occupying exactly the same position.
+
+That's usually not an intentional piece of modern art.
+
+KiCad flags it separately. citeturn613402view0
+
+---
+
+# 18. Track width
+
+Example:
+
+```text
+Required:
+min = 0.25 mm
+opt = 0.50 mm
+max = 1.00 mm
+```
+
+Then:
+
+```text
+0.10 mm → ERROR
+0.25 mm → OK
+0.50 mm → preferred
+0.80 mm → OK
+1.20 mm → ERROR
+```
+
+Important detail: KiCad distinguishes **optimal routing width** from an actual minimum/maximum DRC constraint. An `opt` value tells the interactive router what to prefer, while `min`/`max` establish the enforceable limits. citeturn432697view1turn745273view0
+
+---
+
+# 19. Track angle
+
+Checks the angle between connected track segments.
+
+For example, a custom manufacturing rule could demand only certain angles:
+
+```text
+───────╲
+        ╲
+         ╲
+```
+
+KiCad allows minimum and maximum track-angle constraints. citeturn341867view0
+
+---
+
+# 20. Track segment length
+
+Checks whether an individual track or arc segment is too short or too long according to a configured constraint. citeturn341867view1
+
+This is distinct from total net length.
+
+---
+
+# 21. Annular width
+
+For a through-hole pad:
+
+```text
+   copper
+ ┌─────────┐
+ │ ███████ │
+ │ █  ○  █ │
+ │ ███████ │
+ └─────────┘
+      ↑
+     hole
+```
+
+The copper ring surrounding the hole is the annular ring.
+
+Too little copper means poor manufacturing margin and potentially unreliable plated holes.
+
+KiCad checks minimum and, through custom rules, maximum annular width. citeturn613402view0turn745273view0
+
+---
+
+# 22. Hole size
+
+KiCad checks:
+
+```text
+minimum drilled hole
+maximum drilled hole
+```
+
+for mechanically drilled holes.
+
+Microvias have a separate hole-size check because they are laser drilled. citeturn341867view1
+
+---
+
+# 23. Via dimensions
+
+KiCad can constrain:
+
+```text
+via diameter
+via drill size
+via type
+```
+
+where via types include:
+
+```text
+Through
+Micro
+Blind
+Buried
+```
+
+The custom rule system supports minimum, optimal and maximum via diameter. citeturn745273view0
+
+---
+
+# 24. Courtyard rules
+
+A footprint's courtyard represents the component's intended mechanical clearance region.
+
+```text
+┌───────────────┐
+│   U1 BODY     │
+└───────────────┘
+       courtyard
+┌─────────────────────┐
+```
+
+KiCad checks:
+
+- courtyard overlap
+- missing courtyard
+- malformed courtyard
+
+A nonzero courtyard clearance can also be configured. citeturn613402view0
+
+---
+
+# 25. Board outline
+
+The `Edge.Cuts` geometry must form valid closed outlines.
+
+KiCad checks for:
+
+```text
+✔ closed outline
+✔ no self-intersection
+✔ valid geometry
+```
+
+It can also detect extremely small stray graphics on `Edge.Cuts`. citeturn432697view1
+
+---
+
+# 26. Copper slivers
+
+A copper sliver is an extremely narrow, wedge-shaped piece of copper.
+
+```text
+██████████
+        ╲
+         ╲
+          ▏
+```
+
+These can create manufacturing or electrical reliability problems.
+
+KiCad reports copper slivers. citeturn613402view0
+
+---
+
+# 27. Solder-mask bridge
+
+Suppose one solder-mask opening exposes two different nets:
+
+```text
+PAD A ███
+      └── shared mask opening ──┘
+                               ███ PAD B
+```
+
+During soldering, the two exposed conductors may become bridged.
+
+KiCad therefore checks:
+
+**Solder mask aperture bridges items with different nets.** citeturn613402view0
+
+---
+
+# 28. Minimum copper connection width
+
+A copper path can technically exist but become ridiculously narrow:
+
+```text
+████████
+      █
+      █
+      █████
+```
+
+KiCad calls this **Copper connection too narrow** and can enforce a minimum connection width. citeturn613402view0
+
+This is especially relevant when a zone connects to a small pad.
+
+---
+
+# 29. Backdrilling / post-machining
+
+KiCad also checks whether a track is connected to a layer that has been removed by machining/backdrilling.
+
+That produces:
+
+**Track connected to post-machined or backdrilled layer.** citeturn613402view0
+
+---
+
+# 30. Schematic ↔ PCB parity
+
+This is the area most directly related to your **pin-to-pin connectivity question at the PCB level**.
+
+DRC compares the schematic and PCB.
+
+It checks:
+
+| Rule | Meaning |
+|---|---|
+| **Duplicate footprints** | Multiple footprints with same reference |
+| **Missing footprint** | Schematic component has no PCB footprint |
+| **Extra footprint** | PCB footprint has no schematic symbol |
+| **Footprint attributes don't match symbol** | Value/DNP/BOM/etc. differ |
+| **Footprint doesn't match footprint filters** | Selected footprint violates the symbol's filter |
+| **Pad net doesn't match schematic** | PCB pad is assigned to the wrong net |
+| **Missing connection between items** | Same-net PCB objects are physically unconnected |
+
+citeturn613402view0
+
+---
+
+# 31. The most important PCB pin rule
+
+Suppose your schematic says:
+
+```text
+U1 pin 5 ───────── U2 pin 7
+             NET_A
+```
+
+After updating the PCB:
+
+```text
+U1 pad 5 ───────── U2 pad 7
+             NET_A
+```
+
+DRC cares about:
+
+```text
+U1 pad 5 → NET_A
+U2 pad 7 → NET_A
+```
+
+and:
+
+```text
+Is the NET_A copper physically continuous?
+```
+
+It does **not** normally reason:
+
+> “Pin 5 is an output and Pin 7 is an input, therefore this connection is logically correct.”
+
+That's ERC territory.
+
+So the full chain is:
+
+```text
+SYMBOL PIN TYPE
+       ↓
+      ERC
+       ↓
+Electrical compatibility
+       ↓
+NET ASSIGNMENT
+       ↓
+PCB PAD
+       ↓
+     DRC
+       ↓
+Physical connection
+```
+
+This distinction is fundamental.
+
+---
+
+# 32. Signal-integrity DRC
+
+KiCad 10 includes checks for:
+
+### Total routed length
+
+```text
+NET_A ─────────────── 35 mm
+```
+
+A custom `length` rule can define minimum/target/maximum routed length. citeturn745273view0
+
+---
+
+### Skew
+
+Suppose:
+
+```text
+D0 = 50.0 mm
+D1 = 50.4 mm
+D2 = 50.2 mm
+D3 = 52.0 mm
+```
+
+If maximum allowed skew is:
+
+```text
+1 mm
+```
+
+then D3 is too far from the longest/relative matching requirement depending on the configured rule.
+
+KiCad supports `skew` rules. citeturn432697view2turn745273view0
+
+---
+
+### Differential-pair gap
+
+For:
+
+```text
+USB+
+══════════════════
+
+USB-
+══════════════════
+```
+
+KiCad can enforce:
+
+```text
+minimum gap
+optimal gap
+maximum gap
+```
+
+The min/max are what DRC enforces. The optimal value helps the router. citeturn432697view2turn745273view0
+
+---
+
+### Differential uncoupled length
+
+When a pair fans out:
+
+```text
+             ╱────────
+USB+ ════════╱
+
+USB- ════════╲────────
+             ╲
+```
+
+the traces aren't coupled during the fanout.
+
+KiCad can constrain the maximum uncoupled length. citeturn341867view2
+
+---
+
+### Via count
+
+KiCad can constrain:
+
+```text
+minimum vias
+maximum vias
+```
+
+for a matched net. citeturn432697view2
+
+---
+
+# 33. Readability DRC
+
+KiCad checks:
+
+| Rule | Purpose |
+|---|---|
+| Silkscreen clearance | Prevent silk collisions |
+| Silkscreen clipped by solder mask | Prevent silk over exposed pads |
+| Silkscreen clipped by board edge | Prevent silk outside the board |
+| Text height out of range | Ensure manufacturable/readable text |
+| Text thickness out of range | Ensure text strokes aren't too thin/thick |
+| Mirrored text on front | Detect backwards front text |
+| Non-mirrored text on back | Detect backwards back text |
+
+citeturn432697view2
+
+This matters for your earlier **PCB copper name/logo** question because text on `F.Cu` is fundamentally different from silkscreen.
+
+---
+
+# 34. Miscellaneous DRC rules
+
+KiCad 10 additionally checks:
+
+| Rule | Purpose |
+|---|---|
+| Items not allowed | Object violates keepout/disallow rule |
+| Copper zones intersect | Different zones collide |
+| Isolated copper fill | Copper island isn't connected |
+| Footprint is not valid | Invalid net-tie footprint configuration |
+| Padstack is questionable | Suspicious pad geometry/settings |
+| PTH inside courtyard | Mechanical conflict |
+| NPTH inside courtyard | Mechanical conflict |
+| Item on disabled copper layer | Object uses nonexistent copper layer |
+| Unresolved text variable | Undefined PCB text variable |
+| Footprint type doesn't match pads | SMD/THT classification mismatch |
+| Footprint field mismatch | Symbol/footprint field discrepancy |
+| Footprint not in libraries | Library footprint unavailable |
+| Footprint doesn't match library | Board footprint differs from library |
+| Through-hole pad has no hole | Invalid THT definition |
+
+citeturn988877view0
+
+The **questionable padstack** check is particularly useful for custom footprints. KiCad examines things such as:
+
+```text
+PTH without copper
+PTH without proper annulus
+SMD pads with inappropriate layers
+THT pad with BGA property
+connector pads with paste
+bad solder-mask geometry
+negative local clearance
+```
+
+and other suspicious combinations. citeturn988877view0
+
+---
+
+# 35. Full custom DRC constraint system
+
+Beyond the named DRC violation checks, KiCad 10 has a substantial **custom constraint vocabulary**. This lets you make rules much more specific than the global defaults. citeturn745273view0
+
+The major constraint types are:
+
+| Constraint | What it controls |
+|---|---|
+| `annular_width` | Pad/via annular ring |
+| `assertion` | Arbitrary Boolean condition |
+| `bridged_mask` | Solder-mask bridge behavior |
+| `clearance` | Electrical copper spacing |
+| `connection_width` | Minimum copper connection |
+| `courtyard_clearance` | Footprint courtyard spacing |
+| `creepage` | Surface creepage |
+| `diff_pair_gap` | Differential-pair spacing |
+| `diff_pair_uncoupled` | Maximum uncoupled pair length |
+| `disallow` | Prohibit specific object types |
+| `edge_clearance` | Object-to-board-edge spacing |
+| `hole_clearance` | Hole-to-copper spacing |
+| `hole_size` | Drill size |
+| `hole_to_hole` | Drill-to-drill spacing |
+| `length` | Total net routing length |
+| `min_resolved_spokes` | Minimum zone connections |
+| `physical_clearance` | General same-layer physical spacing |
+| `physical_hole_clearance` | Hole spacing independent of net |
+| `silk_clearance` | Silk-to-object spacing |
+| `skew` | Relative length matching |
+| `solder_mask_expansion` | Solder-mask opening |
+| `solder_paste_abs_margin` | Absolute paste margin |
+| `solder_paste_rel_margin` | Relative paste margin |
+| `text_height` | Text size |
+| `text_thickness` | Text stroke |
+| `thermal_relief_gap` | Thermal spoke gap |
+| `thermal_spoke_width` | Thermal spoke width |
+| `track_angle` | Track bend angle |
+| `track_segment_length` | Segment length |
+| `track_width` | Track width |
+| `via_count` | Number of vias |
+| `via_dangling` | Dangling-via detection |
+| `via_diameter` | Via diameter |
+| `zone_connection` | Solid/thermal/no zone connection |
+
+citeturn745273view0turn341867view0
+
+---
+
+# 36. Rule targeting
+
+This is where KiCad becomes considerably more powerful than a simple “minimum track width” checker.
+
+A rule can target:
+
+```text
+ANY
+NET
+NETCLASS
+WITHIN AREA
+CUSTOM QUERY
+```
+
+and can restrict itself to:
+
+```text
+Any layer
+Specific layer
+Outer copper
+Inner copper
+```
+
+Conditions can be combined using:
+
+```text
+AND
+OR
+AND NOT
+OR NOT
+```
+
+KiCad evaluates these conditions against the relevant objects involved in the rule. citeturn174352view2
+
+---
+
+# 37. Example: high-voltage rule
+
+Suppose:
+
+```text
+Netclass = HV
+Required clearance = 1.5 mm
+```
+
+Conceptually:
+
+```text
+HV copper
+████████████
+
+        ≥ 1.5 mm
+
+other copper
+████████████
+```
+
+Everything on the `HV` netclass gets the stricter clearance rule. KiCad provides this exact kind of example in its documentation. citeturn174352view2
+
+---
+
+# 38. Example: power-track rule
+
+Suppose:
+
+```text
+PWR netclass
+
+minimum  = 0.25 mm
+optimal  = 0.50 mm
+maximum  = 1.00 mm
+```
+
+Then the router prefers:
+
+```text
+0.50 mm
+```
+
+but DRC rejects anything below:
+
+```text
+0.25 mm
+```
+
+or above:
+
+```text
+1.00 mm
+```
+
+when the maximum is enforced. citeturn174352view2
+
+---
+
+# 39. Footprint-specific rules
+
+KiCad can also constrain footprints.
+
+For example:
+
+```text
+All U* footprints
+        ↓
+must be on F.Cu
+```
+
+or:
+
+```text
+specific footprint
+        ↓
+vias under SMD pads prohibited
+```
+
+The built-in custom-rule framework supports:
+
+- permitted layers
+- allowed orientation
+- vias under SMD
+
+KiCad's documentation notes that permitted-layer and orientation constraints are implemented internally using an assertion-style mechanism. citeturn505875view2turn341867view3
+
+---
+
+# 40. Severity
+
+Both ERC and DRC support:
+
+```text
+ERROR
+WARNING
+IGNORE
+```
+
+Depending on the rule, some checks have fixed behavior.
+
+For example, the ERC **duplicate pins with different nets** check is a non-configurable error. Most other ERC and DRC severities can be adjusted. citeturn174352view0turn174352view1
+
+For custom DRC rules, the custom syntax additionally supports:
+
+```text
+error
+warning
+ignore
+exclusion
+```
+
+KiCad evaluates custom rules in their defined order, so rule precedence matters. citeturn745273view0
+
+---
+
+# 41. What ERC and DRC do NOT prove
+
+Passing every rule does **not** prove:
+
+```text
+✔ correct resistor value
+✔ correct IC pinout
+✔ correct voltage
+✔ correct current rating
+✔ correct thermal design
+✔ correct impedance
+✔ correct EMI/EMC performance
+✔ correct firmware
+✔ correct circuit function
+```
+
+For example:
+
+```text
+5 V regulator
+       ↓
+3.3 V-rated IC
+```
+
+may pass many structural checks while still having an incorrectly selected regulator or incorrect operating conditions.
+
+ERC/DRC are verification tools, not magical electronic omniscience.
+
+---
+
+# 42. The complete pin-to-pin validation chain
+
+For the kind of PCB design you're doing, this is the most useful mental model:
+
+```text
+                  SCHEMATIC
+                      │
+                      ▼
+              ┌───────────────┐
+              │ Symbol pins   │
+              │ Pin numbers   │
+              │ Pin types     │
+              │ Net names     │
+              └───────┬───────┘
+                      │
+                      ▼
+                    ERC
+                      │
+          ┌───────────┴───────────┐
+          │                       │
+   Pin compatibility       Connectivity
+          │                       │
+          ▼                       ▼
+   INPUT/OUTPUT etc.       wires/labels/buses
+          │
+          ▼
+     Netlist generated
+          │
+          ▼
+        PCB PAD
+          │
+          ▼
+        DRC
+          │
+    ┌─────┼──────────────────┐
+    │     │                  │
+    ▼     ▼                  ▼
+Net assignment  Physical geometry  Manufacturing
+    │     │                  │
+    │     ├─ clearance        ├─ drill
+    │     ├─ track width      ├─ annular ring
+    │     ├─ shorts           ├─ courtyard
+    │     ├─ via connection   └─ board edge
+    │     └─ zones
+    │
+    ▼
+Final PCB
+```
+
+The most important rule to remember is:
+
+> **ERC validates what the connection means. DRC validates whether the connection physically exists and can be manufactured.**
+
+And when the question is specifically **“Pin 1 should connect to Pin 4, Pin 2 should connect to Pin 5, and Pin 3 must never connect to them”**, the workflow is:
+
+```text
+Schematic:
+Pin electrical types + net assignment
+                ↓
+               ERC
+                ↓
+PCB:
+Pad-to-net assignment + physical copper
+                ↓
+               DRC
+```
+
+That separation is what prevents a **schematically wrong connection**, a **physically shorted connection**, and a **correctly assigned but physically unconnected connection** from being treated as the same problem. KiCad 10 explicitly checks those at different stages. citeturn174352view0turn613402view0
+
+### One practical rule for your KiCad 10.0.4 projects
+
+Keep these as real errors rather than casually silencing them:
+
+```text
+ERC
+✓ Pin not connected
+✓ Input not driven
+✓ Power input not driven
+✓ Output ↔ Output conflict
+✓ Duplicate pin number / different net
+✓ Ground misconnection
+
+DRC
+✓ Short between nets
+✓ Clearance violation
+✓ Missing connection
+✓ Pad net mismatch
+✓ Track width
+✓ Hole / annular limits
+✓ Board-edge clearance
+✓ Invalid board outline
+```
+
+Those are the rules most likely to catch an actual design mistake rather than merely complaining about the decorative bureaucracy surrounding one.
