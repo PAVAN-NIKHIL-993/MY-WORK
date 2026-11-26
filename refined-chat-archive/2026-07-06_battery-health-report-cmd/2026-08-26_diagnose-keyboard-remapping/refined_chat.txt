@@ -1,0 +1,181 @@
+========================================================================
+REFINED CHAT ARCHIVE — 2026-08-26_diagnose-keyboard-remapping
+========================================================================
+Title:               Diagnose keyboard remapping
+Conversation ID:     6a8e4758-9b24-83ee-97fb-36cd165d9da9
+Source file:         conversations-001.json  (ChatGPT data export)
+Source type:         ChatGPT export JSON (.json)
+Created:             2026-08-26  (2026-08-26 01:55:11 UTC)
+Last update:         2026-08-26 01:55:30 UTC
+Turns:               5 total  (main branch 5: 1 user / 4 assistant; off-branch alternates 0)
+Model(s):            gpt-5-6
+Archived:            False   Starred: None
+Default model:       auto
+Export nodes seen:   6
+Archive generated:   2026-11-26 (tools/build_archive.py)
+========================================================================
+
+## SECTION A — CONSOLIDATED USER QUESTIONS (SINGLE PARAGRAPH)
+
+The user began by asking: “[IMAGE ATTACHMENT file_id=file_0000000083f08208b4e3e40328fb8ea1, name=d7a01a54-3449-419f-8407-829df1c0da4a.png, mime=image/png, 1366x768px, size=328056 bytes] — file referenced in export manifest (.dat); binary not included in provided export why like this normal 'p' in note pad and p6 in win search”.
+
+## SECTION B — COMPREHENSIVE CHAT SUMMARY & ACTIONABLE SUGGESTIONS
+
+### Full Summary
+
+**Overview.** Keyboard remapping fault ('p' normal in Notepad, 'p6' in Windows Search): Interception stop test, driver reinstall, layout checks.
+
+**Conversation profile.** 5 turns on the main branch (1 user / 4 assistant). Created 2026-08-26 (2026-08-26 01:55:11 UTC); last updated 2026-08-26 01:55:30 UTC. Source: conversations-001.json (chatgpt export json). Model(s) seen: gpt-5-6.
+
+**Key concepts, decisions, architecture & calculations discussed.**
+- Most likely cause
+- Do this first
+- Test another Windows text field
+- Win + R
+- Since you're using Interception, stop it temporarily
+- Very important test
+- Win + R →
+- My suspicion
+
+**Decisions & recommendations recorded in the conversation.**
+- No explicit recommendation sentences were detected; review the transcript for implicit guidance.
+
+**Code / config / commands fingerprint.**
+- Fenced code blocks by language: plain×5, text×5
+- No explicit file paths mentioned.
+- Attachments referenced: 1 (see 'Referenced Attachments' appendix; binaries not included in provided export).
+
+**Outcome / final state.**
+The conversation closed with the assistant stating (verbatim excerpt): “Yep, this is **not normal keyboard behavior**. The screenshot gives a very useful clue: - **Notepad:** `ppppp` → the `P` key itself is fine. - **Windows Search:** `p6p6p6p6...` → something is injecting/remapping `6` specifically when Windows Search receives the keystroke. And given that you were just working with **AutoHotkey + Interception**, that is my prime suspect. Humanity has once again invented three layers of keyboard hooks so one letter can become two letters. Beautiful. ### Most likely cause An **AutoHotkey script, Interception mapping, or another keyboard-hook utility** is processin…”
+
+### Suggestions & Next Steps
+
+- Create a system restore point and export any registry keys before editing; document the original values so the change is reversible.
+- Regenerate this archive after every ChatGPT export (Settings → Data controls → Export) and diff against the previous INDEX.md to catch missing turns.
+- Lock in the winning decision from this chat into your project docs/repo before the next ChatGPT session; context window loss is the main failure mode.
+
+## SECTION C — COMPLETE PIN-TO-PIN REFINED TRANSCRIPT
+(Turn 1 → Turn 5 on the main branch; 0 off-branch alternate turn(s) preserved in the appendix)
+
+------------------------------------------------------------------------
+Turn 1 [USER] — 2026-08-26 01:55:10 UTC  [multimodal_text]
+------------------------------------------------------------------------
+[IMAGE ATTACHMENT file_id=file_0000000083f08208b4e3e40328fb8ea1, name=d7a01a54-3449-419f-8407-829df1c0da4a.png, mime=image/png, 1366x768px, size=328056 bytes] — file referenced in export manifest (.dat); binary not included in provided export
+why like this normal 'p' in note pad and p6 in win search
+
+------------------------------------------------------------------------
+Turn 2 [ASSISTANT] — 2026-08-26 01:55:19 UTC  [thoughts, model=gpt-5-6]
+------------------------------------------------------------------------
+(reasoning trace present in export but empty/redacted)
+
+------------------------------------------------------------------------
+Turn 3 [ASSISTANT] — 2026-08-26 01:55:19 UTC  [thoughts, model=gpt-5-6]
+------------------------------------------------------------------------
+(thought summary) Reviewed keyboard remappings and connected interception setup to Search
+
+------------------------------------------------------------------------
+Turn 4 [ASSISTANT] — 2026-08-26 01:55:19 UTC  [reasoning_recap, model=gpt-5-6]
+------------------------------------------------------------------------
+(reasoning recap) Worked for 8s
+
+------------------------------------------------------------------------
+Turn 5 [ASSISTANT] — 2026-08-26 01:55:16 UTC  [model=gpt-5-6]
+------------------------------------------------------------------------
+Yep, this is **not normal keyboard behavior**. The screenshot gives a very useful clue:
+
+- **Notepad:** `ppppp` → the `P` key itself is fine.
+- **Windows Search:** `p6p6p6p6...` → something is injecting/remapping `6` specifically when Windows Search receives the keystroke.
+
+And given that you were just working with **AutoHotkey + Interception**, that is my prime suspect. Humanity has once again invented three layers of keyboard hooks so one letter can become two letters. Beautiful.
+
+### Most likely cause
+
+An **AutoHotkey script, Interception mapping, or another keyboard-hook utility** is processing `P` and generating `6` under certain Windows UI conditions.
+
+Windows Search uses a different input path from a normal Notepad edit control, so a buggy/remapped keyboard hook can behave differently there.
+
+### Do this first
+
+#### 1. Test another Windows text field
+
+Press:
+
+**Win + R**
+
+Then type:
+
+```text
+pppppp
+```
+
+Tell me what appears.
+
+Also test:
+
+- Notepad → `pppppp`
+- Win+R → `pppppp`
+- Chrome address bar → `pppppp`
+- Windows Search → `pppppp`
+
+The results will tell us exactly which input layer is being affected.
+
+### 2. Since you're using Interception, stop it temporarily
+
+Open **Task Manager → Startup apps** and disable anything related to:
+
+- AutoHotkey
+- Interception
+- keyboard remapping
+- PowerToys Keyboard Manager
+- key remappers/macros
+
+Also exit any running `.ahk` scripts from the system tray.
+
+Then restart Windows Search or, preferably, reboot once.
+
+### 3. Very important test
+
+Open **On-Screen Keyboard**:
+
+**Win + R →**
+
+```text
+osk
+```
+
+Click the on-screen **P** key while Windows Search is active.
+
+If you get:
+
+```text
+p6p6p6
+```
+
+even from the On-Screen Keyboard, the physical keyboard is innocent. The problem is higher up in Windows/input handling.
+
+If OSK gives:
+
+```text
+ppppp
+```
+
+but your physical `P` gives:
+
+```text
+p6p6p6
+```
+
+then the keyboard/Interception/remapping path is the culprit.
+
+### My suspicion
+
+Because you recently installed/attempted to install **Interception**, I would investigate that **before touching Windows Search itself**.
+
+Don't uninstall random Windows components yet. We can isolate the exact layer first, rather than performing the traditional Windows troubleshooting ritual of deleting things until the computer develops a new personality. memcite
+
+------------------------------------------------------------------------
+### REFERENCED ATTACHMENTS (1)
+Binary files referenced by this conversation. The provided export did NOT include
+the .dat payloads, so checksums cannot be computed here — see raw_dat_attachments/MANIFEST_MISSING.md.
+
+- file_id=file_0000000083f08208b4e3e40328fb8ea1, name=d7a01a54-3449-419f-8407-829df1c0da4a.png, mime=image/png, size=328056 bytes

@@ -1,0 +1,161 @@
+========================================================================
+REFINED CHAT ARCHIVE — 2026-06-09_robu-pcb-manufacturing-specs
+========================================================================
+Title:               Robu PCB Manufacturing Specs
+Conversation ID:     6a2767a9-56cc-8322-a4ed-60be41ef9a92
+Source file:         conversations-000.json  (ChatGPT data export)
+Source type:         ChatGPT export JSON (.json)
+Created:             2026-06-09  (2026-06-09 01:09:08 UTC)
+Last update:         2026-06-09 01:09:25 UTC
+Turns:               2 total  (main branch 2: 1 user / 1 assistant; off-branch alternates 0)
+Model(s):            gpt-5-5
+Archived:            False   Starred: None
+Default model:       gpt-5-5
+Export nodes seen:   3
+Archive generated:   2026-11-26 (tools/build_archive.py)
+========================================================================
+
+## SECTION A — CONSOLIDATED USER QUESTIONS (SINGLE PARAGRAPH)
+
+The user began by asking: “do u know PCB Manufacturing Capabilities in robu”.
+
+## SECTION B — COMPREHENSIVE CHAT SUMMARY & ACTIONABLE SUGGESTIONS
+
+### Full Summary
+
+**Overview.** Robu PCB manufacturing capabilities and recommended design rules, high-current cheat-sheet and 'maximum capability' board guidance for ESP32 projects.
+
+**Conversation profile.** 2 turns on the main branch (1 user / 1 assistant). Created 2026-06-09 (2026-06-09 01:09:08 UTC); last updated 2026-06-09 01:09:25 UTC. Source: conversations-000.json (chatgpt export json). Model(s) seen: gpt-5-5.
+
+**Key concepts, decisions, architecture & calculations discussed.**
+- Robu PCB Manufacturing Capabilities
+- Recommended Design Rules (What I would actually use)
+- ESP32 Projects
+- High Current Cheat Sheet
+- If you want the "maximum capability" board
+
+**Decisions & recommendations recorded in the conversation.**
+- No explicit recommendation sentences were detected; review the transcript for implicit guidance.
+
+**Code / config / commands fingerprint.**
+- No fenced code blocks detected.
+- No explicit file paths mentioned.
+
+**Outcome / final state.**
+The conversation closed with the assistant stating (verbatim excerpt): “Yes. Robu publicly lists their PCB manufacturing design rules and fabrication limits. If you're designing in KiCad, EasyEDA, Altium, Fusion 360 Electronics, etc., these are the numbers you should respect unless you have a special requirement. citeturn0search0turn0search1 ## Robu PCB Manufacturing Capabilities | Parameter | Capability | |------------|------------| | Layers | 1, 2, 4, 6 Layer PCBs | | Min Trace Width (1-2 Layer) | 5 mil (0.127 mm) | | Min Trace Spacing (1-2 Layer) | 5 mil (0.127 mm) | | Min Trace Width (4-6 Layer) | 3.5 mil (0.09 mm) | | Min Trace Spacing (4-6 Layer) | 3.5 m…”
+
+### Suggestions & Next Steps
+
+- Power the ESP32 from a clean 3.3 V rail: ≥100 µF bulk + 100 nF ceramic at the VDD pins, and a separate regulator for servos/motors — brownouts masquerade as random firmware bugs.
+- Respect boot strapping pins (GPIO 0/2/12 on classic ESP32, GPIO 2/8/9 on C3): no external pulls that fight the straps, and never drive GPIO12 high at reset on 5 V-tolerant modules.
+- Enable the hardware watchdog (esp_task_wdt) around your main loop and use deep-sleep with RTC retention for battery nodes.
+- Gate every BPM/SpO₂ output behind a perfusion threshold (MIN_IR_LEVEL) + signal-quality index and a 5–6 s hold; never publish raw beats to UI.
+- Calibrate the IR/RED ratio against a reference pulse oximeter at rest and motion to derive your personal SpO₂ curve; ambient-light cancellation (dark current subtraction) is mandatory in daylight.
+- Finish with a full ERC + DRC pass (unconnected pins, clearance, annular ring, silk over pads), define RF/antenna keepouts, and verify every footprint against its datasheet before sending to fab.
+- Export Gerbers + drill files and inspect them in a viewer (gerbv/KiCad viewer) — visual inspection catches 90% of fab-house rejections.
+- Lock in the winning decision from this chat into your project docs/repo before the next ChatGPT session; context window loss is the main failure mode.
+
+## SECTION C — COMPLETE PIN-TO-PIN REFINED TRANSCRIPT
+(Turn 1 → Turn 2 on the main branch; 0 off-branch alternate turn(s) preserved in the appendix)
+
+------------------------------------------------------------------------
+Turn 1 [USER] — 2026-06-09 01:09:08 UTC
+------------------------------------------------------------------------
+do u know PCB Manufacturing Capabilities in robu
+
+------------------------------------------------------------------------
+Turn 2 [ASSISTANT] — 2026-06-09 01:09:09 UTC  [model=gpt-5-5]
+------------------------------------------------------------------------
+Yes. Robu publicly lists their PCB manufacturing design rules and fabrication limits. If you're designing in KiCad, EasyEDA, Altium, Fusion 360 Electronics, etc., these are the numbers you should respect unless you have a special requirement. citeturn0search0turn0search1
+
+## Robu PCB Manufacturing Capabilities
+
+| Parameter | Capability |
+|------------|------------|
+| Layers | 1, 2, 4, 6 Layer PCBs |
+| Min Trace Width (1-2 Layer) | 5 mil (0.127 mm) |
+| Min Trace Spacing (1-2 Layer) | 5 mil (0.127 mm) |
+| Min Trace Width (4-6 Layer) | 3.5 mil (0.09 mm) |
+| Min Trace Spacing (4-6 Layer) | 3.5 mil (0.09 mm) |
+| Min Via Hole | 0.3 mm (1-2 layer) |
+| Min Via Hole | 0.2 mm (multilayer) |
+| Min Via Diameter | 0.5 mm (1-2 layer) |
+| Min Via Diameter | 0.45 mm typical (multilayer) |
+| PTH Hole Size | 0.20 mm to 6.35 mm |
+| Min NPTH Hole | 0.50 mm |
+| Min Plated Slot | 0.50 mm |
+| Min Non-Plated Slot | 1.0 mm |
+| Min Castellated Hole | 0.60 mm |
+| Via-to-Track | 0.254 mm |
+| Pad-to-Track | 0.20 mm |
+| PTH-to-Track | 0.33 mm |
+| Hole-to-Hole Clearance | 0.50 mm |
+| BGA Pad Size | 0.25 mm minimum |
+| Solder Mask Expansion | 0.05 mm |
+
+
+citeturn0search0turn0search1
+
+## Recommended Design Rules (What I would actually use)
+
+Humans love designing right at the manufacturing limit and then acting surprised when DFM checks start screaming.
+
+For hobby and professional boards:
+
+| Rule | Recommended |
+|--------|--------|
+| Trace Width | 0.20 mm (8 mil) |
+| Trace Clearance | 0.20 mm (8 mil) |
+| Via Drill | 0.30 mm |
+| Via Diameter | 0.60 mm |
+| Signal Pad Hole | Hole + 0.5 mm |
+| Mounting Holes | ≥3 mm |
+| Ground Pour Clearance | 0.20 mm |
+
+These values manufacture very reliably and keep costs low.
+
+## ESP32 Projects
+
+For your typical ESP32 + sensors + relays + OLED + RF modules:
+
+- Signal traces: 0.20 mm
+- 3.3V power: 0.40 mm
+- 5V power: 0.60 mm
+- Motor current traces: 1.5 mm to 3 mm depending on current
+- Ground plane on both layers
+- Via: 0.6/0.3 mm
+
+## High Current Cheat Sheet
+
+genui{"math_block_widget_always_prefetch_v2":{"content":"V=IR"}}
+
+For 1 oz copper:
+
+| Current | Trace Width |
+|----------|------------|
+| 0.5 A | 0.25 mm |
+| 1 A | 0.5 mm |
+| 2 A | 1.0 mm |
+| 3 A | 1.5 mm |
+| 5 A | 3 mm |
+| 10 A | 6 mm+ |
+
+## If you want the "maximum capability" board
+
+Robu can handle roughly:
+
+- 4-layer boards
+- 0.09 mm trace/space
+- 0.2 mm drilled vias
+- Fine-pitch QFN packages
+- BGA down to 0.5 mm pitch with careful fan-out
+
+But for first-pass success I'd stay around:
+
+- 0.15 mm traces
+- 0.15 mm spacing
+- 0.3 mm drills
+
+That gives fabrication engineers fewer opportunities to curse your Gerbers over their morning tea. citeturn0search0turn0search1
+
+For your ESP32-S3, MAX30102, MCP4725, RFID, motor-driver, and sensor-heavy projects, I can also give a complete KiCad/Altium DRC rule set optimized specifically for Robu manufacturing.
